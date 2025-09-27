@@ -40,7 +40,7 @@ If a conflict arises, plan to solve the issue as soon as possible. This is best 
 If the group is unable to resolve the conflict, seek advice from the instructional team. 
 Link to repository: https://github.com/AshStivers/PH251W_Group_6.git 
 
-Our chosen Topic
+Our chosen Topic:
 Scenario 1: Infectious disease outbreak (simulated) in California
 You have been given three datasets: dataset one contains weekly data about a novel infectious respiratory disease outbreak containing the number of cases and case severity by demographic categories (age category, race, sex) and geographic categories (county) for California counties (except for Los Angeles county); dataset two contains morbidity and population data by similar demographic and geographic categories for Los Angeles county, and dataset three populations estimates for 2023 by county and demographic categories. 
 Description
