@@ -8,22 +8,97 @@ date: "2025-09-27"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+Description of dataset:
 
-```{r cars}
-summary(cars)
+What is the data source? (1-2 sentences on where the data is coming from, dates included, etc.)
+How does the dataset relate to the group problem statement and question?
+
+sim_novelid_LACounty.csv: 
+
+1. The Los Angeles County dataset is a  file that includes weekly data on new and cumulative cases, severity, and recovery for 2023. It is broken down by age, race/ethnicity, and sex.
+
+2. This dataset attempts to fill in the gap for Los Angeles County, which was not included in the statewide file. It lets us look at whether certain groups in Los Angeles are more affected and helps guide decisions on how resources should be allocated for prevention and treatment.
+
+sim_novalid_CA.csv:
+
+ca_pop_2023.csv:
+
+
+Import statements for all datasets:
+
+Document the import process
+
+```{r}
+# load packages
+library(readr)
+library(dplyr)
+library(tidyverse)
+
+
+# 1) california population 
+ca_pop <- read_csv("ca_pop_2023.csv", show_col_types = FALSE)
+
+# 2) statewide dataset
+ca_state <- read_csv(
+  "sim_novelid_CA.csv",
+  na = c("", "NA", "na"),
+  show_col_types = FALSE
+)
+
+# 3) los angeles county dataset
+la_county <- read_csv(
+  "sim_novelid_LACounty.csv",
+  na = c("", "NA", "na"),
+  show_col_types = FALSE
+)
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
+Use appropriate import function and package based on the type of file
+Utilize function arguments to control relevant components (i.e. change column types, column names, missing values, etc.)
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r}
+#la county has column DT_REPORT that doesn't have any meaningful data (ONLY NA)
+
+la_county <- la_county %>% 
+  select(-DT_REPORT)
+
+
+
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+Clean up column names (recommend using snake case, which is lower case text with underscores between words)
+
+```{r}
+
+#Changed la county data columns to lower case
+names(la_county) <- tolower(names(la_county))
+
+```
+
+Identify data types for 5+ data elements/columns/variables:
+
+Identify 5+ data elements required for your specified scenario. If <5 elements are required to complete the analysis, please choose additional variables of interest in the data set to explore in this milestone.
+
+
+Utilize functions or resources in RStudio to determine the types of each data element (i.e. character, numeric, factor)
+
+
+Identify the desired type/format for each variable—will you need to convert any columns to numeric or another type? 
+
+
+Provide a basic description of the 5+ data elements:
+
+Numeric: mean, median, range
+Character: unique values/categories
+Or any other descriptives that will be useful to the analysis
+Describe cleaning that each data source may need:
+
+```{r}
+
+
+```
+
