@@ -25,6 +25,8 @@ sim_novalid_CA.csv:
 
 ca_pop_2023.csv:
 
+1. This population dataset estimates data by demographic category and county for 2023.
+2. The dataset is will be used for county comparisons to normalize for populations to avoid misleading conclusions. We will also use this daya set to help identify demographics that are disproportionately affected.  
 
 Import statements for all datasets:
 
@@ -65,6 +67,8 @@ Utilize function arguments to control relevant components (i.e. change column ty
 la_county <- la_county %>% 
   select(-DT_REPORT)
 
+#ca_pop has race7 column name so I changed it to race
+ca_pop<-ca_pop %>% rename(race=race7)
 
 
 ```
@@ -76,6 +80,9 @@ Clean up column names (recommend using snake case, which is lower case text with
 
 #Changed la county data columns to lower case
 names(la_county) <- tolower(names(la_county))
+
+#ca_pop has race7 column name so I changed it to race in code chunk above.
+
 
 ```
 
