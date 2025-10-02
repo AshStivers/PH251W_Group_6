@@ -21,7 +21,11 @@ sim_novelid_LACounty.csv:
 
 2. This dataset attempts to fill in the gap for Los Angeles County, which was not included in the statewide file. It lets us look at whether certain groups in Los Angeles are more affected and helps guide decisions on how resources should be allocated for prevention and treatment.
 
-sim_novalid_CA.csv:
+sim_novelid_CA.csv:
+
+1. The sim_novelid_CA dataset contains aggregated surveillance summary data reported weekly from 5/29/2023 until 12/25/2023 for the novel infectious disease in California. It includes data about disease incidence, disease severity, recovery status, demographic information (age, sex, race/ethnicity) and geographic data (county) that helps to identify when, where, and among which subsets of the population cases are occurring. 
+
+2. The dataset provides information that, in combination with the other datasets, could provide insight  on the course of the outbreak, whether it is disproportionately affecting subsets of the population (demographic or geographic populations), and the populations/counties that would most benefit from resources being allocated. 
 
 ca_pop_2023.csv:
 
@@ -70,6 +74,11 @@ la_county <- la_county %>%
 #ca_pop has race7 column name so I changed it to race
 ca_pop<-ca_pop %>% rename(race=race7)
 
+#ca_state has category race_ethnicity as numeric, but codes should be categorical
+ca_state <- ca_state %>%
+  mutate(race_ethnicity =
+           as.factor(race_ethnicity))
+
 
 ```
 
@@ -83,7 +92,7 @@ names(la_county) <- tolower(names(la_county))
 
 #ca_pop has race7 column name so I changed it to race in code chunk above.
 
-
+#The data columns in ca_state data are already in snake case
 ```
 
 Identify data types for 5+ data elements/columns/variables:
