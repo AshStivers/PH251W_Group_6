@@ -30,6 +30,7 @@ sim_novelid_CA.csv:
 ca_pop_2023.csv:
 
 1. This population dataset estimates data by demographic category and county for 2023.
+
 2. The dataset is will be used for county comparisons to normalize for populations to avoid misleading conclusions. We will also use this daya set to help identify demographics that are disproportionately affected.  
 
 Import statements for all datasets:
@@ -97,16 +98,89 @@ names(la_county) <- tolower(names(la_county))
 
 Identify data types for 5+ data elements/columns/variables:
 
-Identify 5+ data elements required for your specified scenario. If <5 elements are required to complete the analysis, please choose additional variables of interest in the data set to explore in this milestone.
+Identify 5+ data elements required for your specified scenario. 
+If <5 elements are required to complete the analysis, please choose additional variables of interest in the data set to explore in this milestone.
 
+1. dt_dx
+
+2. age_category (Age Group) 
+
+3. sex (Sex of Case) – 
+
+4. race_eth or race_ethnicity 
+
+5. county
+
+6. dx_new or new_infections
+
+7. infected_cumulative or cumulative_infected
+
+8. unrecovered_new or new_unrecovered
+
+9. severe_new or new_severe
+
+10. pop
+#I listed 10 just to see if these would be good. Please feel free to edit.
 
 Utilize functions or resources in RStudio to determine the types of each data element (i.e. character, numeric, factor)
+
+```{r}
+str(la_county)
+str(ca_pop)
+str(ca_state)
+
+```
+
+
+
+```{r}
+library(dplyr)
+glimpse(la_county)
+glimpse(ca_pop)
+glimpse(ca_state)
+```
+
+```{r}
+library(dplyr)
+glimpse(la_county)
+glimpse(ca_pop)
+
+```
+
+```{r}
+library(dplyr)
+glimpse(la_county)
+glimpse(ca_pop)
+#I used this function too to see what it would give us
+```
+
 
 
 Identify the desired type/format for each variable—will you need to convert any columns to numeric or another type? 
 
 
 Provide a basic description of the 5+ data elements:
+
+dt_dx – Date – The calendar date when a case was diagnosed.
+
+age_category – Categorical (string/factor) – Groups cases into age ranges.
+
+sex – Categorical (string/factor) – Identifies the sex of individuals.
+
+race_eth or race_ethnicity  – Categorical (string/factor) – Indicates the racial/ethnic group of the case.
+
+county – Categorical (string/factor) – Identifies the county of residence 
+
+dx_new or new_infections – Numeric (integer) – Number of newly reported infections in a given week.
+
+infected_cumulative or cumulative_infected – Numeric (integer) – Running total of infections to date.
+
+unrecovered_new or new_unrecovered – Numeric (integer) – Number of newly added cases that have not yet recovered.
+
+severe_new or new_severe – Numeric (integer) – Number of cases classified as severe in a given week.
+
+pop – Numeric (integer) – Population denominator by demographic group, from the 2023 estimates dataset.
+
 
 Numeric: mean, median, range
 Character: unique values/categories
