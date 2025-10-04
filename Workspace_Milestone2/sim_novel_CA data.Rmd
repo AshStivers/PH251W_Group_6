@@ -1,0 +1,100 @@
+---
+title: "Workspace_Milestone_2"
+author: "Ash Stivers"
+date: "2025-09-28"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readr)
+library(readxl)
+library(janitor)
+library(dplyr)
+library(tidyverse)
+
+#Import data
+ca_pop_2023 <- read_csv("../ca_pop_2023.csv") %>%
+  clean_names()
+
+sim_novel_CA <- read_csv("../sim_novelid_CA.csv") %>%
+  clean_names()
+
+sim_novel_LA <- read_csv("../sim_novelid_LACounty.csv") %>%
+  clean_names()
+
+codebook <- readxl::read_excel("../scenario_one_simulated_novelid_codebook.xlsx")
+
+```
+
+```{r}
+#Check variables
+glimpse(sim_novel_CA)
+
+```
+
+```{r}
+#Variables: county, age_cat, sex, race_ethnicity, dt_diagnosis, time_int, new_infections, cumulative_infected, new_unrecovered, cumulative_unrecovered, new_severe, cumulative_severe
+
+```
+
+```{r}
+
+tabyl(sim_novel_CA$age_cat)
+tabyl(sim_novel_CA$sex)
+tabyl(sim_novel_CA$race_ethnicity)
+
+
+
+```
+
+```{r}
+summary(sim_novel_CA$new_infections)
+summary(sim_novel_CA$cumulative_infected)
+```
+
+```{r}
+sim_novel_CA %>%
+  summarise(
+    mean_new = mean(new_infections, na.rm = TRUE),
+    median_new = median(new_infections, na.rm = TRUE),
+    min_new = min(new_infections, na.rm = TRUE),
+    max_new = max(new_infections, na.rm = TRUE),
+    mean_cumulative = mean(cumulative_infected, na.rm = TRUE),
+    median_cumulative = mean(cumulative_infected, nal.rm = TRUE),
+    min_cumulative = min(cumulative_infected, na.rm = TRUE),
+    max_cumulative = max(cumulative_infected, na.rm = TRUE)
+  )
+```
+
+```{r}
+str(sim_novel_CA)
+```
+
+```{r}
+sim_novel_CA <- sim_novel_CA %>%
+  mutate(race_ethnicity =
+           as.factor(race_ethnicity))
+```
+
+```{r}
+str(sim_novel_CA)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
