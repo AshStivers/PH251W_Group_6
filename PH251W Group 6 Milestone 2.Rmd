@@ -187,6 +187,24 @@ Character: unique values/categories
 Or any other descriptives that will be useful to the analysis
 Describe cleaning that each data source may need:
 
+#Feel free to change or delete what you want. I probably missed some. 
+
+ca_pop cleaning:
+1) Column names - race7 needed changed to race (see above)
+2) Standardize categorical variables - age_cat will need to be changed to an ordered factor so the age groups are in order. 
+3) Check for missing values (NA)
+
+ca_state cleaning: 
+1) Coded variables need to be converted to categorical factors (and relabeled)
+2) Standardize categorical variables such as "MALE" and "FEMALE" to be more consistent and uniform ("Male", "Female", or all lowercase)
+3) Check for missing values (NA) 
+4) Check for and address duplicates if they exist
+
+la_county cleaning:
+1) Remove unnecessary columns - DT_REPORT did not meaningful data (see above)
+2) Fix date variable - dt_dx is a character column that will need to be changed to a Date. 
+3) Standardize categorical variables - age_category could be converted to an ordered factor, "MALE" and "Female" to be more consistent and uniform ("Male", "Female", or all lowercase)
+
 ```{r}
 
 
