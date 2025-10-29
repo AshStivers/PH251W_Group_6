@@ -209,24 +209,33 @@ For Scenario 1: Infectious disease outbreak (simulated) in California
 
 The sim_novelid_CA.csv file and sim_novelid_LACounty.csv file together represent simulated morbidity for the entire state of California. While it’s certainly possible for data from different sources to adhere to a format standard, one of the challenges of working with secondary data is that it often does not work out that way. 
 
+Therefore to prepare each dataset (milestone #3) so that they can be combined into one, whole state, dataset you will need to do the following:
+
+Morbidity datasets (from CA and LA County)
+Recode column names, values, or formats that are in discordant (dates, etc)
+Combine morbidity datasets into a single dataset
+Select demographic and geographic strata (s) of interest
+Aggregate the data into a new dataframe to  include only one row per strata of interest
+Population dataset
+Recode values to be consistent with morbidity datasets so they can be joined
+Select demographic or geogrphic strata(s) of interest
+Create a rate metric and summarize to include only one row per strata of interest
+
 ```{r}
 library(dplyr)
 library(janitor)
 library(lubridate)
 
-# ---- 0) You already have these in memory:
-# ca_state  <- ...
-# la_county <- ...
 
-# ---- 1) Clean names (snake_case, strip weird chars)
+# 1) Clean names (snake_case, strip weird chars)
 ca_state  <- ca_state  %>% janitor::clean_names()
 la_county <- la_county %>% janitor::clean_names()
 
-# ---- 2) See what's mismatched (diagnostics)
+# 2) See what's mismatched (diagnostics)
 setdiff(names(ca_state),  names(la_county))  # in CA not in LA
 setdiff(names(la_county), names(ca_state))   # in LA not in CA
 
-# ---- 3) Harmonize to a common schema
+#3) Harmonize to a common schema
 schema_map <- list(
   week_start      = c("week_start","week_of","weekstart","week"),
   county          = c("county","county_name"),
@@ -312,7 +321,7 @@ library(janitor)
 ca_state  <- ca_state  %>% clean_names()
 la_county <- la_county %>% clean_names()
 
-# --- Standardize CA statewide ---
+#Standardize CA statewide
 ca_std <- ca_state %>%
   rename(
     week_start        = dt_diagnosis,
@@ -386,14 +395,3 @@ list(
 
 ```
 
-Therefore to prepare each dataset (milestone #3) so that they can be combined into one, whole state, dataset you will need to do the following:
-
-Morbidity datasets (from CA and LA County)
-Recode column names, values, or formats that are in discordant (dates, etc)
-Combine morbidity datasets into a single dataset
-Select demographic and geographic strata (s) of interest
-Aggregate the data into a new dataframe to  include only one row per strata of interest
-Population dataset
-Recode values to be consistent with morbidity datasets so they can be joined
-Select demographic or geogrphic strata(s) of interest
-Create a rate metric and summarize to include only one row per strata of interest
