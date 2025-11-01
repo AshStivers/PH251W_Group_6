@@ -286,6 +286,39 @@ la_h <- std_types(la_h) %>% mutate(
   county = if_else(is.na(county) | county == "", "Los Angeles", county)
 )
 
+# TRYING TO FIX THE DATE ISSUE ***************************************************
+# ANY IDEAS? I TRIED FOR HOURS AND AM IN A CONTINUOUS ERROR LOOP
+ca_h <- std_types(ca_h) %>% 
+  mutate(source = "CA")
+
+la_h <- std_types(la_h) %>% 
+  mutate(
+  source = "LA",
+  county = if_else(is.na(county) | 
+                     county == "", "Los Angeles", county)
+)
+
+# --- Standardize CA statewide ---
+ca_std <- ca_h %>%
+  mutate(
+    week_start = suppressWarnings(lubridate::ymd(dt_diagnosis))
+  )
+
+# --- Standardize LA County ---
+la_std <- la_h %>%
+  mutate(
+    week_start = suppressWarnings(lubridate::ymd(dt_report))
+  )
+
+
+# ---- 5) Align columns and combine ----
+core_cols <- c("week_start","county","cases_new","cases_cum",
+               "severity","recovered","age_group","sex","race_ethnicity","source")
+
+ca_h <- ca_std %>% select(any_of(core_cols), everything())
+la_h <- la_std %>% select(any_of(core_cols), everything())
+
+
 # ---- 5) Align columns and combine
 core_cols <- c("week_start","county","cases_new","cases_cum",
                "severity","recovered","age_group","sex","race_ethnicity","source")
@@ -293,15 +326,41 @@ core_cols <- c("week_start","county","cases_new","cases_cum",
 ca_h <- ca_h %>% select(any_of(core_cols), everything())
 la_h <- la_h %>% select(any_of(core_cols), everything())
 
+# turn to characters before bind so they do not mismatch data types**********************************
+ca_h <- ca_h %>%
+  mutate(week_start =
+           as.character(week_start))
+la_h <- la_h %>%
+  mutate(week_start =
+           as.character(week_start))
+
 combined <- bind_rows(ca_h, la_h)
 
-# ---- 6) Quick checks
+# ---- 6 Quick checks ----
+# STILL WORKING ON THE DATE MIN/MAX ISSUE ******************************************
+combined <- combined %>%
+  mutate(
+    week_start = suppressWarnings(lubridate::dmy(week_start))
+  )
+
+
+list(
+  remaining_mismatch_ca_vs_la = c(setdiff(names(ca_h), names(la_h)),
+                                  setdiff(names(la_h), names(ca_h))),
+  n_rows     = nrow(combined),
+  n_counties = dplyr::n_distinct(combined$county),
+  date_min   = min(combined$week_start, na.rm = TRUE),
+  date_max   = max(combined$week_start, na.rm = TRUE)
+)
+
+
+
 list(
   remaining_mismatch_ca_vs_la = c(setdiff(names(ca_h), names(la_h)),
                                   setdiff(names(la_h), names(ca_h))),
   n_rows    = nrow(combined),
   n_counties= dplyr::n_distinct(combined$county),
-  date_min  = min(combined$week_start, na.rm = TRUE),
+ date_min  = min(combined$week_start, na.rm = TRUE),
   date_max  = max(combined$week_start, na.rm = TRUE)
 )
 
@@ -311,6 +370,34 @@ readr::write_csv(combined, "combined_morbidity_CA_2023.csv")
 
 
 ```
+```{r}
+# Details to fix warning from 315-316 *** 
+#head(unique(combined$week_start), 15)
+
+#names(combined)
+
+#head(unique(combined$week_start), 20)
+
+# names(ca_h)
+
+# names(la_h)
+
+# unique(na.omit(ca_h$week_start))[1:15]
+# unique(na.omit(la_h$week_start))[1:15]
+
+# names(ca_h)
+
+# names(la_h)
+
+# head(unique(combined$week_start), 20)
+
+#head(unique(ca_h$week_start), 20)
+#head(unique(ca_h$dt_dx), 20)
+
+head(unique(ca_h$dt_diagnosis), 20)
+```
+
+
 
 ```{r}
 library(dplyr)
