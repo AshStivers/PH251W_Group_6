@@ -357,7 +357,7 @@ readr::write_csv(combined, "combined_morbidity_CA_2023.csv")
 
 #head(unique(ca_h$dt_diagnosis), 20)
 
-system("git status")
+
 ```
 
 
