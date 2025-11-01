@@ -203,7 +203,7 @@ la_county cleaning:
 2) Fix date variable - dt_dx is a character column that will need to be changed to a Date. 
 3) Standardize categorical variables - age_category could be converted to an ordered factor, "MALE" and "Female" to be more consistent and uniform ("Male", "Female", or all lowercase)
 
-Milestone #3 Details
+**Milestone #3 Details**
 
 For Scenario 1: Infectious disease outbreak (simulated) in California
 
@@ -211,7 +211,7 @@ The sim_novelid_CA.csv file and sim_novelid_LACounty.csv file together represent
 
 Therefore to prepare each dataset (milestone #3) so that they can be combined into one, whole state, dataset you will need to do the following:
 
-Morbidity datasets (from CA and LA County)
+**Morbidity datasets (from CA and LA County)**
 Recode column names, values, or formats that are in discordant (dates, etc)
 Combine morbidity datasets into a single dataset
 Select demographic and geographic strata (s) of interest
@@ -264,52 +264,17 @@ harmonize_names <- function(df, schema_map){
 ca_h <- harmonize_names(ca_state,  schema_map)
 la_h <- harmonize_names(la_county, schema_map)
 
-# ---- 4) Make types consistent and fill missing county in LA
-std_types <- function(df){
-  df %>%
-    mutate(
-      week_start = suppressWarnings(lubridate::ymd(week_start)),
-      county     = as.character(county),
-      cases_new  = suppressWarnings(as.integer(cases_new)),
-      cases_cum  = suppressWarnings(as.integer(cases_cum)),
-      severity   = as.character(severity),
-      recovered  = as.character(recovered),
-      age_group  = as.character(age_group),
-      sex        = as.character(sex),
-      race_ethnicity = as.character(race_ethnicity)
-    )
-}
-
-ca_h <- std_types(ca_h) %>% mutate(source = "CA")
-la_h <- std_types(la_h) %>% mutate(
-  source = "LA",
-  county = if_else(is.na(county) | county == "", "Los Angeles", county)
-)
-
-# TRYING TO FIX THE DATE ISSUE ***************************************************
-# ANY IDEAS? I TRIED FOR HOURS AND AM IN A CONTINUOUS ERROR LOOP
-ca_h <- std_types(ca_h) %>% 
-  mutate(source = "CA")
-
-la_h <- std_types(la_h) %>% 
-  mutate(
-  source = "LA",
-  county = if_else(is.na(county) | 
-                     county == "", "Los Angeles", county)
-)
-
 # --- Standardize CA statewide ---
 ca_std <- ca_h %>%
   mutate(
-    week_start = suppressWarnings(lubridate::ymd(dt_diagnosis))
+    week_start = suppressWarnings(lubridate::ymd(dt_diagnosis))   # CA uses dt_diagnosis
   )
 
 # --- Standardize LA County ---
 la_std <- la_h %>%
   mutate(
-    week_start = suppressWarnings(lubridate::ymd(dt_report))
+    week_start = suppressWarnings(lubridate::ymd(dt_dx))          # LA uses dt_dx
   )
-
 
 # ---- 5) Align columns and combine ----
 core_cols <- c("week_start","county","cases_new","cases_cum",
@@ -318,42 +283,35 @@ core_cols <- c("week_start","county","cases_new","cases_cum",
 ca_h <- ca_std %>% select(any_of(core_cols), everything())
 la_h <- la_std %>% select(any_of(core_cols), everything())
 
-
-# ---- 5) Align columns and combine
-core_cols <- c("week_start","county","cases_new","cases_cum",
-               "severity","recovered","age_group","sex","race_ethnicity","source")
-
-ca_h <- ca_h %>% select(any_of(core_cols), everything())
-la_h <- la_h %>% select(any_of(core_cols), everything())
-
-# turn to characters before bind so they do not mismatch data types**********************************
-ca_h <- ca_h %>%
-  mutate(week_start =
-           as.character(week_start))
-la_h <- la_h %>%
-  mutate(week_start =
-           as.character(week_start))
+combined <- bind_rows(
+  ca_std %>% select(any_of(core_cols), everything()),
+  la_std %>% select(any_of(core_cols), everything())
+)
 
 combined <- bind_rows(ca_h, la_h)
 
 # ---- 6 Quick checks ----
-# STILL WORKING ON THE DATE MIN/MAX ISSUE ******************************************
+# Make sure week_start is properly converted from text to date
 combined <- combined %>%
-  mutate(
-    week_start = suppressWarnings(lubridate::dmy(week_start))
-  )
+  mutate(week_start = suppressWarnings(lubridate::ymd(week_start)))
 
+# Remove rows where week_start failed to convert
+combined <- combined %>% filter(!is.na(week_start))
+
+# Compute summary info
+date_min <- min(combined$week_start, na.rm = TRUE)
+date_max <- max(combined$week_start, na.rm = TRUE)
 
 list(
-  remaining_mismatch_ca_vs_la = c(setdiff(names(ca_h), names(la_h)),
-                                  setdiff(names(la_h), names(ca_h))),
+  remaining_mismatch_ca_vs_la = c(
+    setdiff(names(ca_std), names(la_std)),
+    setdiff(names(la_std), names(ca_std))
+  ),
   n_rows     = nrow(combined),
   n_counties = dplyr::n_distinct(combined$county),
-  date_min   = min(combined$week_start, na.rm = TRUE),
-  date_max   = max(combined$week_start, na.rm = TRUE)
+  date_min   = date_min,
+  date_max   = date_max
 )
-
-
 
 list(
   remaining_mismatch_ca_vs_la = c(setdiff(names(ca_h), names(la_h)),
@@ -370,6 +328,7 @@ readr::write_csv(combined, "combined_morbidity_CA_2023.csv")
 
 
 ```
+
 ```{r}
 # Details to fix warning from 315-316 *** 
 #head(unique(combined$week_start), 15)
@@ -394,7 +353,7 @@ readr::write_csv(combined, "combined_morbidity_CA_2023.csv")
 #head(unique(ca_h$week_start), 20)
 #head(unique(ca_h$dt_dx), 20)
 
-head(unique(ca_h$dt_diagnosis), 20)
+#head(unique(ca_h$dt_diagnosis), 20)
 ```
 
 
