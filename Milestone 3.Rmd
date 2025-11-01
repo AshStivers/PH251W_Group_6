@@ -264,6 +264,8 @@ harmonize_names <- function(df, schema_map){
 ca_h <- harmonize_names(ca_state,  schema_map)
 la_h <- harmonize_names(la_county, schema_map)
 
+# ---- 4) 
+
 # --- Standardize CA statewide ---
 ca_std <- ca_h %>%
   mutate(
@@ -354,6 +356,8 @@ readr::write_csv(combined, "combined_morbidity_CA_2023.csv")
 #head(unique(ca_h$dt_dx), 20)
 
 #head(unique(ca_h$dt_diagnosis), 20)
+
+system("git status")
 ```
 
 
