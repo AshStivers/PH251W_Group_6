@@ -365,11 +365,11 @@ system("git status")
 
 
 ```{r}
-library(dplyr)
-library(lubridate)
-library(janitor)
+#library(dplyr)
+#library(lubridate)
+#library(janitor)
 
-# Clean names just once
+#Clean names just once
 ca_state  <- ca_state  %>% clean_names()
 la_county <- la_county %>% clean_names()
 
