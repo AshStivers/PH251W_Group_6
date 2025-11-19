@@ -457,11 +457,142 @@ Please submit an Rmd or Qmd and publish an html file on RPubs with the following
 -Calculate any remaining data elements needed for analysis
 -Show code used to create joined dataset, but please do not print full data frame output (showing data structure with str() is okay)
 
+```{r}
+## Milestone 4: Create a final joined data set ----
+
+library(dplyr)
+library(ggplot2)
+library(scales)
+
+# Make population data match morbidity 
+ca_pop_strata <- ca_pop %>%
+  mutate(
+    county = paste0(county, " County"),
+    age_group = dplyr::case_when(
+      age_cat %in% c("0-4", "5-11", "12-17") ~ "0-17",
+      age_cat == "18-49" ~ "18-49",
+      age_cat == "50-64" ~ "50-64",
+      age_cat == "65+"   ~ "65+",
+      TRUE               ~ age_cat
+    ),
+    
+    # Standardize text for joins
+    sex = toupper(sex)
+  ) %>%
+  # Re-code race labels to the numeric codes 
+  mutate(
+    race = dplyr::case_when(
+      race == "AIAN NH"   ~ 1,
+      race == "ASIAN NH"  ~ 2,
+      race == "BLACK NH"  ~ 3,
+      race == "HISPANIC"  ~ 4,
+      race == "MR NH"     ~ 5,
+      race == "NHPI NH"   ~ 6,
+      race == "WHITE NH"  ~ 7,
+      TRUE                ~ 8  
+    )
+  ) %>%
+  group_by(county, age_group, sex, race) %>%
+  summarise(population = sum(pop, na.rm = TRUE), .groups = "drop")
+
+# Standardize combined morbidity data
+
+combined_std <- combined %>%
+  mutate(
+    sex  = toupper(sex),
+    race = as.numeric(race_eth)
+  )
+
+
+# Join morbidity & population -> create rate per 100,000 
+joined_data_ca <- combined_std %>%
+  left_join(
+    ca_pop_strata,
+    by = c("county", "age_group", "sex", "race")
+  ) %>%
+  mutate(
+    incidence_rate_100k = if_else(
+      !is.na(population) & population > 0,
+      (cases_new / population) * 100000,
+      NA_real_
+    )
+  )
+
+# Checks
+
+summary(joined_data_ca$population)
+summary(joined_data_ca$incidence_rate_100k)
+
+head(
+  joined_data_ca[, c("week_start", "county", "age_group", "sex", "race",
+                     "cases_new", "population", "incidence_rate_100k")],
+  20
+)
+
+
+```
 
 2. Visualizations (at least one per group member)
 -One print quality table as requested in scenario
 -One print quality plot or chart as requested in scenario
 -For groups of 3, one additional print quality table or plot of your choice (can support the requested data in the scenario, or answer a different question using the same data sources)
+
+```{r}
+# Print quality table
+
+```
+
+
+
+```{r}
+
+# Print quality plot or chart -> Incidence rate per 100,000 by sex in California by sex
+joined_data_ca %>%
+  group_by(sex) %>%
+  summarise(
+    total_cases = sum(cases_new, na.rm = TRUE),
+    total_population = sum(population, na.rm = TRUE),
+    incidence_rate_100k = (total_cases / total_population) * 100000
+  )
+
+sex_summary <- joined_data_ca %>%
+  group_by(sex) %>%
+  summarise(
+    total_cases = sum(cases_new, na.rm = TRUE),
+    total_population = sum(population, na.rm = TRUE),
+    incidence_rate_100k = (total_cases / total_population) * 100000
+  )
+
+ggplot(sex_summary,
+       aes(x = sex, y = incidence_rate_100k, fill = sex)) +
+  geom_col(width = 0.6) +
+  geom_text(aes(label = round(incidence_rate_100k, 1)),
+            vjust = -0.5, size = 5) +   # <-- LABELS HERE
+  scale_fill_manual(values = c("FEMALE" = "coral", "MALE" = "cyan3")) +
+  labs(
+    title = "Incidence Rate per 100,000 by Sex",
+    subtitle = "Simulated Infectious Disease Outbreak, California & LA County",
+    x = "Sex",
+    y = "Incidence Rate per 100,000"
+  ) +
+  theme_minimal(base_size = 15)
+
+
+
+
+
+# Additional
+
+
+```
+
+Incidence rates were comparable across sex in this population, with females at 9470 cases per 100,000 and males at 9539 cases per 100,000. This indicates no major differences in disease burden based on sex for this outbreak.
+
+```{r}
+
+```
+
+
 
 
 3. For each visual, include
@@ -471,6 +602,7 @@ Please submit an Rmd or Qmd and publish an html file on RPubs with the following
 - NOTE:
 *Please make sure the visual can stand-alone, meaning it includes enough information in title, legend, and footnote so that a person who sees only the visualization could understand what is being presented.
 *Please also make sure column names, axis labels, and any other labels are meaningful and not just the name of the variable (ex: "County" rather than "county_name")
+
 
 
 4. Html file that is professionally prepared for presentation and published to RPubs
