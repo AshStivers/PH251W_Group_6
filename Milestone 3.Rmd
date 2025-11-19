@@ -1,8 +1,25 @@
 ---
 title: "Milestone 3"
-output: pdf_document
+output: html_document
 date: "2025-10-12"
 ---
+
+
+# Data Dictionary
+
+Below is the data dictionary for the key variables included in the cleaned and combined morbidity dataset.
+
+| Variable name | Data type | Description |
+|---------------|-----------|-------------|
+| week_start | Date | First day of the reporting week in which cases were recorded. |
+| county | Character | County of residence associated with the case counts. |
+| age_group | Categorical (character) | Age classification for each demographic stratum (e.g., "0-17", "18-49"). |
+| sex | Categorical (character) | Sex of individuals in the demographic stratum. |
+| cases_new | Numeric | Number of newly reported infections in the reporting week. |
+| cases_cum | Numeric | Total cumulative infections reported up to that week. |
+
+
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -444,4 +461,64 @@ list(
 
 #test
 ```
+
+
+## Descriptive Statistics
+
+### Summary for Numeric Variable: cases_new
+
+```{r}
+library(dplyr)
+library(readr)
+library(knitr)
+
+# Ensure the combined dataset is loaded
+combined <- read_csv("combined_morbidity_CA_2023.csv", show_col_types = FALSE)
+
+# Numeric summary for cases_new
+numeric_summary <- combined %>%
+  filter(!is.na(cases_new)) %>%
+  summarise(
+    mean_cases_new = mean(cases_new),
+    median_cases_new = median(cases_new),
+    range_cases_new = paste0(min(cases_new), " – ", max(cases_new))
+  )
+
+knitr::kable(numeric_summary, caption = "Summary Statistics for Cases New")
+```
+
+---
+
+### Frequency Table: County
+```{r}
+knitr::kable(table(combined$county), caption = "Frequency of Counties")
+```
+
+---
+
+### Frequency Table: Age Group
+```{r}
+knitr::kable(table(combined$age_group), caption = "Frequency of Age Groups")
+```
+
+---
+
+### Frequency Table: Sex
+```{r}
+knitr::kable(table(combined$sex), caption = "Frequency of Sex")
+```
+
+
+### Frequency Table: Severity
+
+```{r}
+knitr::kable(table(combined$severity), caption = "Frequency of Severity Categories")
+```
+
+### Frequency Table: Race/Ethnicity
+
+```{r}
+knitr::kable(table(combined$race_ethnicity), caption = "Frequency of Race/Ethnicity")
+```
+
 
