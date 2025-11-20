@@ -460,51 +460,57 @@ Please submit an Rmd or Qmd and publish an html file on RPubs with the following
 ```{r}
 ## Milestone 4: Create a final joined data set ----
 
+## ------------------------------------------------------------
+## Milestone 4: Create a final joined data set
+## ------------------------------------------------------------
+
 library(dplyr)
 library(ggplot2)
 library(scales)
 
-# Make population data match morbidity 
+## -------- 1. Standardize MORBIDITY dataset -------------------
+combined_std <- combined %>%
+  mutate(
+    sex = toupper(sex),
+
+    # Convert numeric race codes → labels used in ca_pop
+    race = case_when(
+      race_eth == "1" ~ "WHITE NON-HISPANIC",
+      race_eth == "2" ~ "BLACK NH",
+      race_eth == "3" ~ "ASIAN NH",
+      race_eth == "4" ~ "MR NH",
+      race_eth == "5" ~ "NHPI NH",
+      race_eth == "6" ~ "HISPANIC",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  select(-race_eth)   # remove old variable
+
+
+
+## -------- 2. Standardize POPULATION dataset ------------------
 ca_pop_strata <- ca_pop %>%
   mutate(
     county = paste0(county, " County"),
-    age_group = dplyr::case_when(
-      age_cat %in% c("0-4", "5-11", "12-17") ~ "0-17",
+
+    # Fix age categories to match morbidity dataset
+    age_group = case_when(
+      age_cat %in% c("0-4","5-11","12-17") ~ "0-17",
       age_cat == "18-49" ~ "18-49",
       age_cat == "50-64" ~ "50-64",
       age_cat == "65+"   ~ "65+",
-      TRUE               ~ age_cat
+      TRUE ~ NA_character_
     ),
-    
-    # Standardize text for joins
-    sex = toupper(sex)
-  ) %>%
-  # Re-code race labels to the numeric codes 
-  mutate(
-    race = dplyr::case_when(
-      race == "AIAN NH"   ~ 1,
-      race == "ASIAN NH"  ~ 2,
-      race == "BLACK NH"  ~ 3,
-      race == "HISPANIC"  ~ 4,
-      race == "MR NH"     ~ 5,
-      race == "NHPI NH"   ~ 6,
-      race == "WHITE NH"  ~ 7,
-      TRUE                ~ 8  
-    )
+
+    sex = toupper(sex),
+    race = toupper(race)
   ) %>%
   group_by(county, age_group, sex, race) %>%
   summarise(population = sum(pop, na.rm = TRUE), .groups = "drop")
 
-# Standardize combined morbidity data
-
-combined_std <- combined %>%
-  mutate(
-    sex  = toupper(sex),
-    race = as.numeric(race_eth)
-  )
 
 
-# Join morbidity & population -> create rate per 100,000 
+## -------- 3. JOIN morbidity + population ---------------------
 joined_data_ca <- combined_std %>%
   left_join(
     ca_pop_strata,
@@ -518,16 +524,19 @@ joined_data_ca <- combined_std %>%
     )
   )
 
-# Checks
 
+
+## -------- 4. Quick checks ------------------------------------
 summary(joined_data_ca$population)
 summary(joined_data_ca$incidence_rate_100k)
 
 head(
-  joined_data_ca[, c("week_start", "county", "age_group", "sex", "race",
-                     "cases_new", "population", "incidence_rate_100k")],
+  joined_data_ca %>%
+    select(week_start, county, age_group, sex, race,
+           cases_new, population, incidence_rate_100k),
   20
 )
+
 
 
 ```
