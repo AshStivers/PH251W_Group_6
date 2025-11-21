@@ -39,27 +39,24 @@ Document the import process
 
 ```{r}
 # load packages
-library(readr)
-library(dplyr)
 library(tidyverse)
+library(dplyr)
+library(readr)
+library(janitor)
+library(here)   
 
+# Load data using HERE -> knitting always sees the same files
 
 # 1) california population 
-ca_pop <- read_csv("ca_pop_2023.csv", show_col_types = FALSE)
+ca_pop   <- read_csv(here::here("ca_pop_2023.csv")) %>% clean_names() %>%
+  rename(race = race7)
 
 # 2) statewide dataset
-ca_state <- read_csv(
-  "sim_novelid_CA.csv",
-  na = c("", "NA", "na"),
-  show_col_types = FALSE
-)
+ca_state <- read_csv(here::here("sim_novelid_CA.csv")) %>% clean_names()
 
 # 3) los angeles county dataset
-la_county <- read_csv(
-  "sim_novelid_LACounty.csv",
-  na = c("", "NA", "na"),
-  show_col_types = FALSE
-)
+la_county <- read_csv(here::here("sim_novelid_LACounty.csv")) %>% clean_names()
+
 ```
 
 
@@ -67,18 +64,26 @@ Use appropriate import function and package based on the type of file
 Utilize function arguments to control relevant components (i.e. change column types, column names, missing values, etc.)
 
 ```{r}
-#la county has column DT_REPORT that doesn't have any meaningful data (ONLY NA)
 
-la_county <- la_county %>% 
-  select(-DT_REPORT)
+# Basic Cleaning
 
-#ca_pop has race7 column name so I changed it to race
-ca_pop<-ca_pop %>% rename(race=race7)
 
-#ca_state has category race_ethnicity as numeric, but codes should be categorical
+# Remove dt_report ONLY if it exists
+if ("dt_report" %in% names(la_county)) {
+  la_county <- la_county %>% select(-dt_report)
+}
+
+
+# Convert race_ethnicity into a factor
+#    (these numbers represent categories.)
 ca_state <- ca_state %>%
-  mutate(race_ethnicity =
-           as.factor(race_ethnicity))
+  mutate(race_ethnicity = as.factor(race_ethnicity))
+
+# View each dataset after cleaning
+str(la_county)
+str(ca_pop)
+str(ca_state)
+
 
 
 ```
@@ -87,13 +92,21 @@ ca_state <- ca_state %>%
 Clean up column names (recommend using snake case, which is lower case text with underscores between words)
 
 ```{r}
+#Clean column names 
 
-#Changed la county data columns to lower case
+# Make sure all names in datasets use snake_case 
+
+# Convert LA County column names - all lowercase
 names(la_county) <- tolower(names(la_county))
 
-#ca_pop has race7 column name so I changed it to race in code chunk above.
+# ca_state columns are already in snake_case - used clean_names() when importing
 
-#The data columns in ca_state data are already in snake case
+# check the cleaned names:
+names(ca_pop)
+names(ca_state)
+names(la_county)
+
+
 ```
 
 Identify data types for 5+ data elements/columns/variables:
@@ -120,7 +133,6 @@ If <5 elements are required to complete the analysis, please choose additional v
 9. severe_new or new_severe
 
 10. pop
-#I listed 10 just to see if these would be good. Please feel free to edit.
 
 Utilize functions or resources in RStudio to determine the types of each data element (i.e. character, numeric, factor)
 
@@ -224,227 +236,98 @@ Select demographic or geogrphic strata(s) of interest
 Create a rate metric and summarize to include only one row per strata of interest
 
 ```{r}
+
+# Clean + Combine Morbidity Data
+
 library(dplyr)
-library(janitor)
 library(lubridate)
+library(janitor)
 
+# Standardize CA statewide dataset
 
-# 1) Clean names (snake_case, strip weird chars)
-ca_state  <- ca_state  %>% janitor::clean_names()
-la_county <- la_county %>% janitor::clean_names()
-
-# 2) See what's mismatched (diagnostics)
-setdiff(names(ca_state),  names(la_county))  # in CA not in LA
-setdiff(names(la_county), names(ca_state))   # in LA not in CA
-
-#3) Harmonize to a common schema
-schema_map <- list(
-  week_start      = c("week_start","week_of","weekstart","week"),
-  county          = c("county","county_name"),
-  cases_new       = c("cases_new","new_cases","incident_cases","new"),
-  cases_cum       = c("cases_cum","cumulative_cases","cum_cases","cases_total"),
-  severity        = c("severity","case_severity","severity_level"),
-  recovered       = c("recovered","recovery_status","recovered_flag"),
-  age_group       = c("age_group","agegrp","age_cat","age_category"),
-  sex             = c("sex","gender"),
-  race_ethnicity  = c("race_ethnicity","race_eth","race","ethnicity","race_ethnicity_combined")
-)
-
-harmonize_names <- function(df, schema_map){
-  out <- df
-  for (std in names(schema_map)) {
-    hit <- intersect(schema_map[[std]], names(out))
-    if (length(hit) == 0) {
-      out[[std]] <- NA
-    } else if (hit[1] != std) {
-      out <- out %>% rename(!!std := all_of(hit[1]))
-    }
-  }
-  out
-}
-
-ca_h <- harmonize_names(ca_state,  schema_map)
-la_h <- harmonize_names(la_county, schema_map)
-
-# ---- 4) 
-
-# --- Standardize CA statewide ---
-ca_std <- ca_h %>%
-  mutate(
-    week_start = suppressWarnings(lubridate::ymd(dt_diagnosis))   # CA uses dt_diagnosis
-  )
-
-# --- Standardize LA County ---
-la_std <- la_h %>%
-  mutate(
-    week_start = suppressWarnings(lubridate::ymd(dt_dx))          # LA uses dt_dx
-  )
-
-# ---- 5) Align columns and combine ----
-core_cols <- c("week_start","county","cases_new","cases_cum",
-               "severity","recovered","age_group","sex","race_ethnicity","source")
-
-ca_h <- ca_std %>% select(any_of(core_cols), everything())
-la_h <- la_std %>% select(any_of(core_cols), everything())
-
-combined <- bind_rows(
-  ca_std %>% select(any_of(core_cols), everything()),
-  la_std %>% select(any_of(core_cols), everything())
-)
-
-combined <- bind_rows(ca_h, la_h)
-
-# ---- 6 Quick checks ----
-# Make sure week_start is properly converted from text to date
-combined <- combined %>%
-  mutate(week_start = suppressWarnings(lubridate::ymd(week_start)))
-
-# Remove rows where week_start failed to convert
-combined <- combined %>% filter(!is.na(week_start))
-
-# Compute summary info
-date_min <- min(combined$week_start, na.rm = TRUE)
-date_max <- max(combined$week_start, na.rm = TRUE)
-
-list(
-  remaining_mismatch_ca_vs_la = c(
-    setdiff(names(ca_std), names(la_std)),
-    setdiff(names(la_std), names(ca_std))
-  ),
-  n_rows     = nrow(combined),
-  n_counties = dplyr::n_distinct(combined$county),
-  date_min   = date_min,
-  date_max   = date_max
-)
-
-list(
-  remaining_mismatch_ca_vs_la = c(setdiff(names(ca_h), names(la_h)),
-                                  setdiff(names(la_h), names(ca_h))),
-  n_rows    = nrow(combined),
-  n_counties= dplyr::n_distinct(combined$county),
- date_min  = min(combined$week_start, na.rm = TRUE),
-  date_max  = max(combined$week_start, na.rm = TRUE)
-)
-
-# ---- 7) Save for later milestones
-readr::write_csv(combined, "combined_morbidity_CA_2023.csv")
-
-
-
-```
-
-```{r}
-# Details to fix warning from 315-316 *** 
-#head(unique(combined$week_start), 15)
-
-#names(combined)
-
-#head(unique(combined$week_start), 20)
-
-# names(ca_h)
-
-# names(la_h)
-
-# unique(na.omit(ca_h$week_start))[1:15]
-# unique(na.omit(la_h$week_start))[1:15]
-
-# names(ca_h)
-
-# names(la_h)
-
-# head(unique(combined$week_start), 20)
-
-#head(unique(ca_h$week_start), 20)
-#head(unique(ca_h$dt_dx), 20)
-
-#head(unique(ca_h$dt_diagnosis), 20)
-
-system("git status")
-```
-
-
-
-```{r}
-#library(dplyr)
-#library(lubridate)
-#library(janitor)
-
-#Clean names just once
-ca_state  <- ca_state  %>% clean_names()
-la_county <- la_county %>% clean_names()
-
-#Standardize CA statewide
 ca_std <- ca_state %>%
   rename(
     week_start        = dt_diagnosis,
     age_group         = age_cat,
+    race_eth          = race_ethnicity,
     cases_new         = new_infections,
     cases_cum         = cumulative_infected,
     unrecovered_new   = new_unrecovered,
     unrecovered_cum   = cumulative_unrecovered,
     severe_new        = new_severe,
-    severe_cum        = cumulative_severe,
-    race_eth          = race_ethnicity
+    severe_cum        = cumulative_severe
   ) %>%
   mutate(
-    week_start = as.Date(week_start),
-    race_eth   = as.character(race_eth),
     county     = as.character(county),
+    age_group  = as.character(age_group),
+    sex        = toupper(sex),
+    race_eth   = as.character(race_eth),
+    week_start = ymd(week_start),
     source     = "CA"
   )
 
-# --- Standardize LA County ---
+# Standardize LA County dataset
+
 la_std <- la_county %>%
   rename(
-    week_start        = dt_dx,
-    age_group         = age_category,
-    cases_new         = dx_new,
-    cases_cum         = infected_cumulative,
-    unrecovered_cum   = unrecovered_cumulative,
-    race_eth          = race_eth
+    week_start      = dt_dx,
+    age_group       = age_category,
+    race_eth        = race_eth,
+    cases_new       = dx_new,
+    cases_cum       = infected_cumulative,
+    unrecovered_cum = unrecovered_cumulative,
+    severe_cum      = severe_cumulative
   ) %>%
   mutate(
-    # dt_dx like "29MAY2023" → parse with dmy()
-    week_start = dmy(week_start),
-    race_eth   = as.character(race_eth),
     county     = "Los Angeles County",
+    age_group  = as.character(age_group),
+    sex        = toupper(sex),
+    race_eth   = as.character(race_eth),
+
+    # LA dates are in weird formats like "29MAY2023"
+    week_start = suppressWarnings(
+      parse_date_time(week_start, orders = c("dmy", "bdY"))
+    ),
+
     source     = "LA"
   ) %>%
-  # make sure all columns that exist in CA exist here too
   mutate(
-    new_severe      = if (!"severe_new" %in% names(.)) NA_integer_ else severe_new,
-    severe_cum      = if (!"severe_cumulative" %in% names(.)) NA_integer_ else severe_cumulative
+    # If these columns do not exist in LA, fill with NA
+    unrecovered_new = ifelse("unrecovered_new" %in% names(.), unrecovered_new, NA),
+    severe_new      = ifelse("severe_new" %in% names(.), severe_new, NA)
   )
 
-# Align columns and bind
+# Align columns and combine datasets
+
 core_cols <- c(
-  "county","week_start","age_group","sex","race_eth",
-  "cases_new","cases_cum","unrecovered_new","unrecovered_cum",
-  "severe_new","severe_cum","source"
+  "county", "week_start", "age_group", "sex", "race_eth",
+  "cases_new", "cases_cum",
+  "unrecovered_new", "unrecovered_cum",
+  "severe_new", "severe_cum",
+  "source"
 )
 
-# Add any missing columns with NA to each side, then select in same order
-add_missing <- function(df, cols){
+add_missing_cols <- function(df, cols) {
   missing <- setdiff(cols, names(df))
-  if (length(missing)) df[missing] <- NA
+  df[missing] <- NA
   df %>% select(all_of(cols))
 }
 
-ca_std2 <- add_missing(ca_std, core_cols)
-la_std2 <- add_missing(la_std, core_cols)
+ca_std2 <- add_missing_cols(ca_std, core_cols)
+la_std2 <- add_missing_cols(la_std, core_cols)
 
 combined <- bind_rows(ca_std2, la_std2)
 
-# --- Quick checks ---
+# Quick checks
+
 list(
-  n_rows          = nrow(combined),
-  n_counties      = dplyr::n_distinct(combined$county),
-  date_min        = min(combined$week_start, na.rm = TRUE),
-  date_max        = max(combined$week_start, na.rm = TRUE),
-  any_na_dates    = any(is.na(combined$week_start))
+  rows = nrow(combined),
+  counties = n_distinct(combined$county),
+  date_range = range(combined$week_start, na.rm = TRUE),
+  missing_dates = sum(is.na(combined$week_start))
 )
 
-#test
+
 ```
 
 
@@ -458,64 +341,88 @@ Please submit an Rmd or Qmd and publish an html file on RPubs with the following
 -Show code used to create joined dataset, but please do not print full data frame output (showing data structure with str() is okay)
 
 ```{r}
-## Milestone 4: Create a final joined data set ----
 
-## ------------------------------------------------------------
-## Milestone 4: Create a final joined data set
-## ------------------------------------------------------------
+# Join Morbidity and Population Data
 
 library(dplyr)
-library(ggplot2)
-library(scales)
-
-## -------- 1. Standardize MORBIDITY dataset -------------------
-combined_std <- combined %>%
-  mutate(
-    sex = toupper(sex),
-
-    # Convert numeric race codes → labels used in ca_pop
-    race = case_when(
-      race_eth == "1" ~ "WHITE NON-HISPANIC",
-      race_eth == "2" ~ "BLACK NH",
-      race_eth == "3" ~ "ASIAN NH",
-      race_eth == "4" ~ "MR NH",
-      race_eth == "5" ~ "NHPI NH",
-      race_eth == "6" ~ "HISPANIC",
-      TRUE ~ NA_character_
-    )
-  ) %>%
-  select(-race_eth)   # remove old variable
+library(stringr)
+library(lubridate)
 
 
+# Standardize population dataset
 
-## -------- 2. Standardize POPULATION dataset ------------------
-ca_pop_strata <- ca_pop %>%
-  mutate(
-    county = paste0(county, " County"),
+ca_pop_std <- ca_pop %>%
+  
+  # Make county names match morbidity dataset
+  mutate(county = paste0(county, " County")) %>%
+  
+  # Convert age_cat -> age_group that matches combined dataset
+  mutate(age_group = case_when(
+    age_cat %in% c("0-4", "5-11", "12-17") ~ "0-17",
+    age_cat == "18-49" ~ "18-49",
+    age_cat == "50-64" ~ "50-64",
+    age_cat == "65+"   ~ "65+",
+    TRUE ~ NA_character_
+  )) %>%
 
-    # Fix age categories to match morbidity dataset
-    age_group = case_when(
-      age_cat %in% c("0-4","5-11","12-17") ~ "0-17",
-      age_cat == "18-49" ~ "18-49",
-      age_cat == "50-64" ~ "50-64",
-      age_cat == "65+"   ~ "65+",
-      TRUE ~ NA_character_
-    ),
+  # Standardize sex
+  mutate(sex = toupper(sex)) %>%
 
-    sex = toupper(sex),
-    race = toupper(race)
-  ) %>%
+  # Standardize race categories
+  mutate(race = case_when(
+    race == "WhiteTE NH" ~ "WHITE NON-HISPANIC",
+    race == "BlackTE NH" ~ "BLACK NON-HISPANIC",
+    race == "AsianTE NH" ~ "ASIAN NON-HISPANIC",
+    race == "AIAN NH" ~ "AMERICAN INDIAN OR ALASKA NATIVE NON-HISPANIC",
+    race == "NHPI NH" ~ "NATIVE HAWAIIAN OR PACIFIC ISLANDER NON-HISPANIC",
+    race == "Hispanic" ~ "HISPANIC",
+    race == "MR NH" ~ "MULTIRACIAL NON-HISPANIC",
+    TRUE ~ NA_character_
+  )) %>%
+
+  # Keep only relevant variables
+  select(county, age_group, sex, race, pop) %>%
+  
+  # Aggregate population to one row per group
   group_by(county, age_group, sex, race) %>%
-  summarise(population = sum(pop, na.rm = TRUE), .groups = "drop")
+  summarise(population = sum(pop), .groups = "drop")
 
 
 
-## -------- 3. JOIN morbidity + population ---------------------
+# STANDARDIZE MORBIDITY DATASET
+
+combined_std <- combined %>%
+  
+  # Standardize sex
+  mutate(sex = toupper(sex)) %>%
+
+  # Convert race_eth into same race names used in population dataset
+  mutate(race = case_when(
+    race_eth == "1" | str_detect(race_eth, "White") ~ "WHITE NON-HISPANIC",
+    race_eth == "2" | str_detect(race_eth, "Black") ~ "BLACK NON-HISPANIC",
+    race_eth == "3" | str_detect(race_eth, "Asian") ~ "ASIAN NON-HISPANIC",
+    race_eth == "4" | str_detect(race_eth, "American|Alaska") ~
+         "AMERICAN INDIAN OR ALASKA NATIVE NON-HISPANIC",
+    race_eth == "5" | str_detect(race_eth, "Pacific|Hawai") ~
+         "NATIVE HAWAIIAN OR PACIFIC ISLANDER NON-HISPANIC",
+    race_eth == "6" | str_detect(race_eth, "Hispanic|Latino") ~ "HISPANIC",
+    race_eth == "7" | str_detect(race_eth, "Multi") ~ "MULTIRACIAL NON-HISPANIC",
+    TRUE ~ NA_character_
+  ))
+
+
+# JOIN MORBIDITY + POPULATION
+
 joined_data_ca <- combined_std %>%
   left_join(
-    ca_pop_strata,
+    ca_pop_std,
     by = c("county", "age_group", "sex", "race")
-  ) %>%
+  )
+
+
+# CALCULATE INCIDENCE RATE PER 100k
+
+joined_data_ca <- joined_data_ca %>%
   mutate(
     incidence_rate_100k = if_else(
       !is.na(population) & population > 0,
@@ -524,19 +431,19 @@ joined_data_ca <- combined_std %>%
     )
   )
 
+# Quick Check
 
-
-## -------- 4. Quick checks ------------------------------------
 summary(joined_data_ca$population)
 summary(joined_data_ca$incidence_rate_100k)
 
 head(
   joined_data_ca %>%
-    select(week_start, county, age_group, sex, race,
-           cases_new, population, incidence_rate_100k),
+    select(
+      week_start, county, age_group, sex, race,
+      cases_new, population, incidence_rate_100k
+    ),
   20
 )
-
 
 
 ```
