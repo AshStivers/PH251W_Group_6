@@ -23,9 +23,7 @@ message = FALSE
 
 ```
 
-
-
-```{r data_import_clean, include=FALSE}
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
 # Load packages
 library(tidyverse)
 library(readr)
@@ -35,6 +33,10 @@ library(lubridate)
 library(stringr)
 library(dplyr)
 
+```
+
+
+```{r data_import_clean, include=FALSE}
 
 ca_pop <- read_csv(here("ca_pop_2023.csv")) %>% clean_names() %>% 
   rename(race = race7)
@@ -171,12 +173,7 @@ str(joined_data_ca)
 
 
 ```{r}
-# load packages
-library(tidyverse)
-library(dplyr)
-library(readr)
-library(janitor)
-library(here)   
+
 
 # Load data using HERE -> knitting always sees the same files
 
@@ -238,10 +235,6 @@ names(la_county)
 ```{r}
 
 # Clean + Combine Morbidity Data
-
-library(dplyr)
-library(lubridate)
-library(janitor)
 
 # Standardize CA statewide dataset
 
@@ -334,11 +327,6 @@ list(
 ```{r}
 
 # Join Morbidity and Population Data
-
-library(dplyr)
-library(stringr)
-library(lubridate)
-
 
 # Standardize population dataset
 
@@ -556,7 +544,7 @@ Incidence rates varied widely across racial and ethnic groups, indicating potent
 
 
 ## Additional
-ncidence rates were comparable across sex, with only a very small difference between females and males. This suggests that transmission and overall disease burden were distributed fairly evenly across both groups during this outbreak. These patterns indicate that sex alone may not be a major driver of risk in this dataset, and other factors such as age, race or exposure patterns may be more influential.
+Incidence rates were comparable across sex, with only a very small difference between females and males. This suggests that transmission and overall disease burden were distributed fairly evenly across both groups during this outbreak. These patterns indicate that sex alone may not be a major driver of risk in this dataset, and other factors such as age, race or exposure patterns may be more influential.
 
 ## Discussion
 
