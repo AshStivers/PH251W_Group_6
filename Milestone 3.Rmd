@@ -27,14 +27,20 @@ Below is the data dictionary for the key variables included in the cleaned and c
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
-
-```{r}
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
 # load packages
 library(readr)
 library(dplyr)
 library(tidyverse)
+library(janitor)
+library(lubridate)
+library(readr)
+library(knitr)
 
+```
+
+
+```{r}
 
 # 1) california population 
 ca_pop <- read_csv("ca_pop_2023.csv", show_col_types = FALSE)
@@ -90,10 +96,6 @@ names(la_county) <- tolower(names(la_county))
 
 
 ```{r}
-library(dplyr)
-library(janitor)
-library(lubridate)
-
 
 # 1) Clean names (snake_case, strip weird chars)
 ca_state  <- ca_state  %>% janitor::clean_names()
@@ -208,9 +210,6 @@ system("git status")
 
 
 ```{r}
-library(dplyr)
-library(lubridate)
-library(janitor)
 
 # Clean names just once
 ca_state  <- ca_state  %>% clean_names()
@@ -296,9 +295,6 @@ list(
 ### Summary for Numeric Variable: cases_new
 
 ```{r}
-library(dplyr)
-library(readr)
-library(knitr)
 
 # Ensure the combined dataset is loaded
 combined <- read_csv("combined_morbidity_CA_2023.csv", show_col_types = FALSE)
