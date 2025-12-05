@@ -557,6 +557,20 @@ ggplot(race_summary,
 
 Incidence rates varied across racial and ethnic groups, suggesting possible differences in exposure, underlying health status, or access to testing and care.
 
+## Problem Statement
+The California Department of Public Health is monitoring a simulated outbreak of a novel infectious respiratory disease and must quickly assess its impact across the state. Multiple data sources have been provided including weekly morbidity and severity counts for all California counties except Los Angeles, detailed demographic and population data for Los Angeles County, and 2023 county-level population estimates (to support statewide surveillance activities). To effectively guide the public health response, these datasets must be merged and analyzed to produce a unified view of the outbreak.
+
+Public health leadership seeks to understand the trajectory of the outbreak, identify whether certain demographic or geographic groups are disproportionately affected, and determine how prevention and treatment resources should be allocated. The task requires integrating the three datasets, generating summary measures such as morbidity rates and severity distributions, and producing clear, print-ready tables and graphical visualizations that communicate key trends across counties and demographic categories. This analysis will inform data-driven decision-making for targeted interventions and resource deployment.
+
+## Methods for Each Data Source
+The sim_novelid_CA.csv dataset contained weekly morbidity records for all counties in California except Los Angeles County. It included cases, severity indicators, and demographic variables, and was stratified by age category, county, race, sex, and week start date. We cleaned and standardized the dataset, converting label cases, renaming the race variable, and ensuring that groups matched the format of the population data. We removed duplicate columns and looked for missing values before joining it. 
+
+The sim_novelid_LACounty.csv dataset was formatted in the same manner as the California state dataset, but it contained separate data for Los Angeles County. We utilized the same cleaning steps to ensure that both of the morbidity datasets were consistent and uniform. After we standardized column names and categories, we combined this dataset with the California dataset to create a morbidity dataset that included all counties. 
+
+The ca_pop_2023.csv dataset contained population estimates by age group, county, race, and sex. The labels in this dataset did not match those in the morbidity data, so they required more cleaning. We added County and re-coded population age categories to have them match age groups, sex labels, and race labels used in the morbidity datasets. 
+
+After all of the datasets had uniform variable names and categories, we grouped and summed the population, then joined it to the morbidity data using county, age group, sex, and race. Then we created a new variable for incidence per 100,000. Other minor cleaning steps were completed to prepare for the development of tables and plot visualizations.
+
 
 ## Results
 
@@ -566,24 +580,3 @@ The incidence rates for males and females were almost identical, showing that se
 
 These results suggest that sex did not have a major influence on infection risk, since the rates for males and females were essentially the same. Stronger patterns were seen with age and race and ethnicity. Older adults consistently carried the highest burden, which is expected for many respiratory infections. The variation across racial and ethnic groups also points to the need to explore factors like underlying health conditions, exposure risks, and differences in access to care that may contribute to these disparities. Altogether, these descriptive findings help guide our initial understanding of who is most impacted and support future work focused on prevention efforts, resource allocation, and examining demographic groups that may be at higher risk.
 
-Milestone #5
-Scenario 1: Infectious disease outbreak (simulated) in California
-You have been given three datasets: dataset one contains weekly data about a novel infectious respiratory disease outbreak containing the number of cases and case severity by demographic categories (age category, race, sex) and geographic categories (county) for California counties (except for Los Angeles county); dataset two contains morbidity and population data by similar demographic and geographic categories for Los Angeles county, and dataset three populations estimates for 2023 by county and demographic categories. 
-
-Description
-You are an employee of the California Department of Public Health working on infectious disease surveillance.
-
-Research question
-Your supervisors are interested to know the course of the outbreak, if it is disproportionately affecting certain demographic or geographic populations and how prevention and treatment resources should be allocated.
-
-Data
-You have been given three datasets: 
-
-1. Dataset one (sim_novelid_CA.csv) contains weekly data about cases and case severity by demographic categories (age category, race, sex) and geographic categories (county) for California counties (except for Los Angeles county); 
-
-2. Dataset two (sim_novelid_LACounty.csv) contains population data by similar demographic and geographic categories for Los Angeles county. 
-
-3. Dataset three (ca_pop_2023.csv) population estimates data by demographic category and county for 2023.  
-
-Data Merging, Summarization, and Reporting: Milestones 4-6
-For milestones 4-6, you will join these datasets together to create a single dataset with aggregated summary morbidity and/or severity metrics and calculate rates. This dataset should be used to generate print-worthy visualizations (at least one table and one graph) to be included in the final report
