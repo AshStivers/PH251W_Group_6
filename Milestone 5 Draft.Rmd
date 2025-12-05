@@ -159,14 +159,10 @@ joined_data_ca <- combined %>%
   )
 ```
 
----
 
-````markdown
 ```{r}
 str(joined_data_ca)
 ```
-
-
 
 ```{r}
 
@@ -475,7 +471,6 @@ sex_summary %>%
 ```
 
 The total number of cases and overall incidence rate were very similar for males and females, suggesting that sex did not meaningfully influence the burden of disease in this population.
-
 
 
 
