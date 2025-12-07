@@ -511,6 +511,7 @@ Incidence rates increased steadily with age, with the highest burden seen in adu
 
 
 ```{r fig.width=10, fig.height=6}
+
 race_summary <- joined_data_ca %>%
   group_by(race) %>%
   summarise(
@@ -520,34 +521,30 @@ race_summary <- joined_data_ca %>%
   ) %>%
   arrange(desc(incidence_rate_100k))
 
-max_rate <- max(race_summary$incidence_rate_100k, na.rm = TRUE)
-
 ggplot(race_summary,
        aes(x = reorder(race, incidence_rate_100k),
            y = incidence_rate_100k,
            fill = race)) +
   geom_col(width = 0.7) +
   geom_text(aes(label = round(incidence_rate_100k, 1)),
-            vjust = -0.5, size = 3.8) +
+            nudge_y = 200, size = 3.8) +
   labs(
     title = "Incidence Rate per 100,000 by Race/Ethnicity",
     subtitle = "Simulated Infectious Disease Outbreak, California & LA County",
     x = NULL,
-    y = "Incidence rate per 100,000",
-    fill = "Race/ethnicity"
+    y = "Incidence Rate per 100,000",
+    fill = "Race/Ethnicity"
   ) +
   theme_minimal(base_size = 14) +
-  # hide x-axis labels and ticks but keep legend
   theme(
-    axis.text.x  = element_blank(),
-    axis.ticks.x = element_blank()
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    legend.title = element_text(size = 12)
   ) +
-  # give extra headroom so all text labels show
   scale_y_continuous(
-    limits = c(0, max_rate * 1.1),  # 10% headroom
-    expand = expansion(mult = c(0, 0.05))
+    limits = c(-500, 12000),   # <-- KEY FIX (adds visible space below zero)
+    expand = expansion(mult = c(0, 0.02))
   )
-
 ```
 
 Incidence rates varied across racial and ethnic groups, suggesting possible differences in exposure, underlying health status, or access to testing and care.
