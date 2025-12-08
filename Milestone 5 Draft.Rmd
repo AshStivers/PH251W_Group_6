@@ -160,12 +160,11 @@ joined_data_ca <- combined %>%
 ```
 
 
-```{r}
+```{r, include = FALSE}
 str(joined_data_ca)
 ```
 
-```{r}
-
+```{r, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
 
 # Load data using HERE -> knitting always sees the same files
 
@@ -183,7 +182,7 @@ la_county <- read_csv(here::here("sim_novelid_LACounty.csv")) %>% clean_names()
 
 
 
-```{r}
+```{r, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
 
 # Basic Cleaning
 
@@ -205,7 +204,7 @@ ca_state <- ca_state %>%
 
 
 
-```{r}
+```{r, include=FALSE}
 #Clean column names 
 
 # Make sure all names in datasets use snake_case 
@@ -224,7 +223,7 @@ names(la_county)
 ```
 
 
-```{r}
+```{r, include=FALSE}
 
 # Clean + Combine Morbidity Data
 
@@ -316,7 +315,7 @@ list(
 ```
 
 
-```{r}
+```{r, include=FALSE}
 
 # Join Morbidity and Population Data
 
@@ -421,7 +420,7 @@ head(
 
 
 
-```{r}
+```{r, include=FALSE}
 sex_summary <- joined_data_ca %>%
   group_by(sex) %>%
   summarise(
@@ -435,7 +434,7 @@ sex_summary <- joined_data_ca %>%
 
 
 
-```{r}
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
 
 library(gt)
 
@@ -475,7 +474,7 @@ The total number of cases and overall incidence rate were very similar for males
 
 
 
-```{r age_group_summary}
+```{r age_group_summary, include=FALSE}
 age_summary <- joined_data_ca %>%
   group_by(age_group) %>%
   summarise(
@@ -486,7 +485,7 @@ age_summary <- joined_data_ca %>%
 ```
 
 
-```{r age_group_plot}
+```{r age_group_plot, echo=FALSE, message=FALSE, warning=FALSE}
 ggplot(age_summary,
        aes(x = age_group, y = incidence_rate_100k, fill = age_group)) +
   geom_col(width = 0.7) +
@@ -510,7 +509,7 @@ Incidence rates increased steadily with age, with the highest burden seen in adu
 
 
 
-```{r fig.width=10, fig.height=6}
+```{r fig.width=10, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE}
 
 race_summary <- joined_data_ca %>%
   group_by(race) %>%
@@ -571,4 +570,6 @@ The incidence rates for males and females were almost identical, showing that se
 ## Discussion
 
 These results suggest that sex did not have a major influence on infection risk, since the rates for males and females were essentially the same. Stronger patterns were seen with age and race and ethnicity. Older adults consistently carried the highest burden, which is expected for many respiratory infections. The variation across racial and ethnic groups also points to the need to explore factors like underlying health conditions, exposure risks, and differences in access to care that may contribute to these disparities. Altogether, these descriptive findings help guide our initial understanding of who is most impacted and support future work focused on prevention efforts, resource allocation, and examining demographic groups that may be at higher risk.
+
+A higher rate of the disease among adults who are 18-49 years of age could reflect increased exposure among this age group due to their employment status. They may be essential workers or have jobs where they have to work in public. This age group may have different social activity patterns, higher mobility, or increased risk of exposure related to having children and other age-related responsibilities. 
 
