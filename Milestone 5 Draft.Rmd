@@ -503,6 +503,31 @@ race_rates <- race_cases %>%
     incidence_rate_100k = (total_cases / population) * 100000
   )
 
+joined_data_ca <- combined %>%
+  mutate(
+    race_std = case_when(
+      race_eth %in% c("1", "White, Non-Hispanic") ~ "White NH",
+      race_eth %in% c("2", "Black, Non-Hispanic") ~ "Black NH",
+      race_eth %in% c("3", "Asian, Non-Hispanic") ~ "Asian NH",
+      race_eth %in% c("4", "American Indian or Alaska Native, Non-Hispanic") ~ "AIAN NH",
+      race_eth %in% c("5", "Native Hawaiian or Pacific Islander, Non-Hispanic") ~ "NHPI NH",
+      race_eth %in% c("7", "Multiracial (two or more of above races), Non-Hispanic") ~ "MR NH",
+      race_eth %in% c("6", "Hispanic (any race)") ~ "Hispanic",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+
+  
+  left_join(
+    ca_pop_summary,
+    by = c("county", "age_group")
+  ) %>%
+
+  mutate(
+    incidence_rate_100k =
+      (cases_new / population) * 100000
+  )
+
 
 ```
 
@@ -670,6 +695,45 @@ ggplot(race_counts,
   ) +
   scale_y_continuous(expand = expansion(mult = c(0, 0.1)))
 
+
+```
+
+```{r}
+race_summary <- joined_data_ca %>%
+  group_by(race_std) %>%
+  summarise(
+    total_cases = sum(cases_new, na.rm = TRUE),
+    total_population = sum(population, na.rm = TRUE),
+    incidence_rate_100k = (total_cases / total_population) * 100000
+  ) %>%
+  filter(!is.na(race_std)) %>%
+  arrange(desc(incidence_rate_100k))
+
+race_summary
+
+```
+
+```{r}
+ggplot(race_summary,
+       aes(x = reorder(race_std, incidence_rate_100k),
+           y = incidence_rate_100k,
+           fill = race_std)) +
+  geom_col(width = 0.7) +
+  geom_text(aes(label = round(incidence_rate_100k, 1)),
+            nudge_y = 50, size = 3.8) +
+  labs(
+    title = "Incidence Rate per 100,000 by Race/Ethnicity",
+    subtitle = "Simulated Infectious Disease Outbreak, California & LA County",
+    x = NULL,
+    y = "Incidence Rate per 100,000",
+    fill = "Race/Ethnicity"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    legend.title = element_text(size = 12)
+  )
 
 ```
 
