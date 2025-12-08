@@ -1,14 +1,9 @@
----
-title: "Milestone 5 Draft"
-author: "Tywana Groce"
-date: "2025-12-05"
-output: html_document
----
+
 ---
 title: 'Milestone #5'
 output:
-  word_document: default
   html_document: default
+  word_document: default
 date: "2025-11-24"
 ---
 
@@ -16,9 +11,22 @@ date: "2025-11-24"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
 
-Milestone #4
+## Problem Statement
+The California Department of Public Health is monitoring a simulated outbreak of a novel infectious respiratory disease and must quickly assess its impact across the state. Multiple data sources have been provided including weekly morbidity and severity counts for all California counties except Los Angeles, detailed demographic and population data for Los Angeles County, and 2023 county-level population estimates (to support statewide surveillance activities). To effectively guide the public health response, these datasets must be merged and analyzed to produce a unified view of the outbreak.
+
+Public health leadership seeks to understand the trajectory of the outbreak, identify whether certain demographic or geographic groups are disproportionately affected, and determine how prevention and treatment resources should be allocated. The task requires integrating the three datasets, generating summary measures such as morbidity rates and severity distributions, and producing clear, print-ready tables and graphical visualizations that communicate key trends across counties and demographic categories. This analysis will inform data-driven decision-making for targeted interventions and resource deployment.
+
+## Methods for Each Data Source
+The sim_novelid_CA.csv dataset contained weekly morbidity records for all counties in California except Los Angeles County. It included cases, severity indicators, and demographic variables, and was stratified by age category, county, race, sex, and week start date. We cleaned and standardized the dataset, converting label cases, renaming the race variable, and ensuring that groups matched the format of the population data. We removed duplicate columns and looked for missing values before joining it. 
+
+The sim_novelid_LACounty.csv dataset was formatted in the same manner as the California state dataset, but it contained separate data for Los Angeles County. We utilized the same cleaning steps to ensure that both of the morbidity datasets were consistent and uniform. After we standardized column names and categories, we combined this dataset with the California dataset to create a morbidity dataset that included all counties. 
+
+The ca_pop_2023.csv dataset contained population estimates by age group, county, race, and sex. The labels in this dataset did not match those in the morbidity data, so they required more cleaning. We added County and re-coded population age categories to have them match age groups, sex labels, and race labels used in the morbidity datasets. 
+
+After all of the datasets had uniform variable names and categories, we grouped and summed the population, then joined it to the morbidity data using county, age group, sex, and race. Then we created a new variable for incidence per 100,000. Other minor cleaning steps were completed to prepare for the development of tables and plot visualizations.
+
+
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 # Load packages
 library(tidyverse)
@@ -432,7 +440,9 @@ sex_summary <- joined_data_ca %>%
 ```
 
 
+## Summary Measures and Visualizations
 
+### Table 1.
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 
@@ -472,7 +482,7 @@ sex_summary %>%
 The total number of cases and overall incidence rate were very similar for males and females, suggesting that sex did not meaningfully influence the burden of disease in this population.
 
 
-
+### Figure 1.
 
 ```{r age_group_summary, include=FALSE}
 age_summary <- joined_data_ca %>%
@@ -508,7 +518,7 @@ Incidence rates increased steadily with age, with the highest burden seen in adu
 
 
 
-
+### Figure 2.
 ```{r fig.width=10, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE}
 
 race_summary <- joined_data_ca %>%
@@ -547,21 +557,6 @@ ggplot(race_summary,
 ```
 
 Incidence rates varied across racial and ethnic groups, suggesting possible differences in exposure, underlying health status, or access to testing and care.
-
-## Problem Statement
-The California Department of Public Health is monitoring a simulated outbreak of a novel infectious respiratory disease and must quickly assess its impact across the state. Multiple data sources have been provided including weekly morbidity and severity counts for all California counties except Los Angeles, detailed demographic and population data for Los Angeles County, and 2023 county-level population estimates (to support statewide surveillance activities). To effectively guide the public health response, these datasets must be merged and analyzed to produce a unified view of the outbreak.
-
-Public health leadership seeks to understand the trajectory of the outbreak, identify whether certain demographic or geographic groups are disproportionately affected, and determine how prevention and treatment resources should be allocated. The task requires integrating the three datasets, generating summary measures such as morbidity rates and severity distributions, and producing clear, print-ready tables and graphical visualizations that communicate key trends across counties and demographic categories. This analysis will inform data-driven decision-making for targeted interventions and resource deployment.
-
-## Methods for Each Data Source
-The sim_novelid_CA.csv dataset contained weekly morbidity records for all counties in California except Los Angeles County. It included cases, severity indicators, and demographic variables, and was stratified by age category, county, race, sex, and week start date. We cleaned and standardized the dataset, converting label cases, renaming the race variable, and ensuring that groups matched the format of the population data. We removed duplicate columns and looked for missing values before joining it. 
-
-The sim_novelid_LACounty.csv dataset was formatted in the same manner as the California state dataset, but it contained separate data for Los Angeles County. We utilized the same cleaning steps to ensure that both of the morbidity datasets were consistent and uniform. After we standardized column names and categories, we combined this dataset with the California dataset to create a morbidity dataset that included all counties. 
-
-The ca_pop_2023.csv dataset contained population estimates by age group, county, race, and sex. The labels in this dataset did not match those in the morbidity data, so they required more cleaning. We added County and re-coded population age categories to have them match age groups, sex labels, and race labels used in the morbidity datasets. 
-
-After all of the datasets had uniform variable names and categories, we grouped and summed the population, then joined it to the morbidity data using county, age group, sex, and race. Then we created a new variable for incidence per 100,000. Other minor cleaning steps were completed to prepare for the development of tables and plot visualizations.
-
 
 ## Results
 
