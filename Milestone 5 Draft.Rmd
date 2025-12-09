@@ -614,18 +614,19 @@ Incidence rates increased steadily with age, with the highest burden seen in adu
 ```{r fig.width=10, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE}
 
 race_summary <- joined_data_ca %>%
-  group_by(race) %>%
+  group_by(race_std) %>%
   summarise(
     total_cases = sum(cases_new, na.rm = TRUE),
     total_population = sum(population, na.rm = TRUE),
     incidence_rate_100k = (total_cases / total_population) * 100000
   ) %>%
+  filter(!is.na(race_std)) %>%
   arrange(desc(incidence_rate_100k))
 
 ggplot(race_summary,
-       aes(x = reorder(race, incidence_rate_100k),
+       aes(x = reorder(race_std, incidence_rate_100k),
            y = incidence_rate_100k,
-           fill = race)) +
+           fill = race_std)) +
   geom_col(width = 0.7) +
   geom_text(aes(label = round(incidence_rate_100k, 1)),
             nudge_y = 200, size = 3.8) +
@@ -641,11 +642,8 @@ ggplot(race_summary,
     axis.text.x = element_blank(),
     axis.ticks.x = element_blank(),
     legend.title = element_text(size = 12)
-  ) +
-  scale_y_continuous(
-    limits = c(-500, 12000),   # <-- KEY FIX (adds visible space below zero)
-    expand = expansion(mult = c(0, 0.02))
   )
+
 ```
 
 Incidence rates varied across racial and ethnic groups, suggesting possible differences in exposure, underlying health status, or access to testing and care.
