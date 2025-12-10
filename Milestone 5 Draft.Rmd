@@ -42,9 +42,8 @@ library(dplyr)
 
 ```{r data_import_clean, include=FALSE}
 
-#-----------------------------------------------------
-# IMPORT / CLEAN POPULATION DATA
-#-----------------------------------------------------
+# Import / Clean Population data 
+
 
 ca_pop <- read_csv(here("ca_pop_2023.csv"), show_col_types = FALSE) %>%
   clean_names() %>%
@@ -70,9 +69,7 @@ ca_pop_summary <- ca_pop %>%
   summarise(population = sum(pop, na.rm = TRUE), .groups = "drop")
 
 
-#-------------------------------------------------
-# IMPORT CASE DATA
-#--------------------------------------------------
+# Import case data 
 
 ca_state <- read_csv(here("sim_novelid_CA.csv"), show_col_types = FALSE) %>%
   clean_names()
@@ -84,9 +81,7 @@ if ("dt_report" %in% names(la_county)) {
   la_county <- la_county %>% select(-dt_report)
 }
 
-#-------------------------------------------------
-# STANDARDIZE CASE DATA (CA)
-#-------------------------------------------------
+# Standardize case data (CA)
 
 ca_std <- ca_state %>%
   rename(
@@ -107,9 +102,7 @@ ca_std <- ca_state %>%
     source     = "CA"
   )
 
-#--------------------------------------------------
-# STANDARDIZE CASE DATA (LA)
-#--------------------------------------------------
+# Standardize case data (LA) 
 
 la_std <- la_county %>%
   rename(
@@ -132,9 +125,7 @@ la_std <- la_county %>%
     source     = "LA"
   )
 
-#-------------------------------------------------
-# ALIGN & COMBINE CASE DATA
-#-------------------------------------------------
+# Align and combine case data 
 
 core_cols <- c(
   "county", "week_start", "age_group", "sex", "race_eth",
@@ -155,9 +146,8 @@ combined <- bind_rows(
   align_cols(la_std)
 )
 
-#---------------------------------------------------
-# COLLAPSE CASE DATA TO MATCH POPULATION LEVELS
-#---------------------------------------------------
+
+# Collapse case data to match population levels 
 
 # Collapse across sex and race → county × age_group × week
 cases_collapsed <- combined %>%
@@ -167,9 +157,9 @@ cases_collapsed <- combined %>%
     .groups = "drop"
   )
 
-#--------------------------------------------------
-# FINAL JOIN + INCIDENCE RATE
-#-------------------------------------------------
+
+# Join & Incidence Rate 
+
 
 joined_data_ca <- cases_collapsed %>%
   left_join(ca_pop_summary, by = c("county", "age_group")) %>%
@@ -251,7 +241,7 @@ names(la_county)
 
 ```{r, include=FALSE}
 
-# Clean + Combine Morbidity Data
+# Clean & Combine Morbidity Data
 
 # Standardize CA statewide dataset
 
@@ -385,7 +375,7 @@ ca_pop_std <- ca_pop %>%
 
 
 
-# STANDARDIZE MORBIDITY DATASET
+# Standardize morbidity dataset 
 
 combined_std <- combined %>%
   
@@ -407,7 +397,7 @@ combined_std <- combined %>%
   ))
 
 
-# JOIN MORBIDITY + POPULATION
+# Join morbidity & population 
 
 joined_data_ca <- combined_std %>%
   left_join(
@@ -416,7 +406,7 @@ joined_data_ca <- combined_std %>%
   )
 
 
-# CALCULATE INCIDENCE RATE PER 100k
+# Calculate incidence rate per 100,000 
 
 joined_data_ca <- joined_data_ca %>%
   mutate(
@@ -563,7 +553,7 @@ sex_summary %>%
   fmt_integer(
     columns = c(total_cases, total_population)
   ) %>%
-  # Keep one decimal for the rate (you can change to 0 if you prefer)
+  # Keep one decimal for the rate 
   fmt_number(
     columns = incidence_rate_100k,
     decimals = 1
@@ -601,7 +591,7 @@ ggplot(age_summary,
   ) +
   theme_minimal(base_size = 15) +
   theme(
-    legend.position = "none"  # remove legend, keep x-axis labels
+    legend.position = "none"  
   )
 
 ```
@@ -611,40 +601,6 @@ Incidence rates increased steadily with age, with the highest burden seen in adu
 
 
 ### Figure 2.
-```{r fig.width=10, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE}
-
-race_summary <- joined_data_ca %>%
-  group_by(race_std) %>%
-  summarise(
-    total_cases = sum(cases_new, na.rm = TRUE),
-    total_population = sum(population, na.rm = TRUE),
-    incidence_rate_100k = (total_cases / total_population) * 100000
-  ) %>%
-  filter(!is.na(race_std)) %>%
-  arrange(desc(incidence_rate_100k))
-
-ggplot(race_summary,
-       aes(x = reorder(race_std, incidence_rate_100k),
-           y = incidence_rate_100k,
-           fill = race_std)) +
-  geom_col(width = 0.7) +
-  geom_text(aes(label = round(incidence_rate_100k, 1)),
-            nudge_y = 200, size = 3.8) +
-  labs(
-    title = "Incidence Rate per 100,000 by Race/Ethnicity",
-    subtitle = "Simulated Infectious Disease Outbreak, California & LA County",
-    x = NULL,
-    y = "Incidence Rate per 100,000",
-    fill = "Race/Ethnicity"
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(
-    axis.text.x = element_blank(),
-    axis.ticks.x = element_blank(),
-    legend.title = element_text(size = 12)
-  )
-
-```
 
 Incidence rates varied across racial and ethnic groups, suggesting possible differences in exposure, underlying health status, or access to testing and care.
 
@@ -696,7 +652,7 @@ ggplot(race_counts,
 
 ```
 
-```{r}
+```{r, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
 race_summary <- joined_data_ca %>%
   group_by(race_std) %>%
   summarise(
@@ -711,7 +667,7 @@ race_summary
 
 ```
 
-```{r}
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
 ggplot(race_summary,
        aes(x = reorder(race_std, incidence_rate_100k),
            y = incidence_rate_100k,
