@@ -561,7 +561,7 @@ sex_summary %>%
 
 ```
 
-The total number of cases and overall incidence rate were very similar for males and females, suggesting that sex did not meaningfully influence the burden of disease in this population.
+Total cases, population counts, and incidence rates for males and females during the simulated infectious disease outbreak across California and Los Angeles County. Incidence rates were nearly identical for both groups, suggesting that sex did not influence infection risk.
 
 
 ### Figure 1.
@@ -596,13 +596,13 @@ ggplot(age_summary,
 
 ```
 
-Incidence rates increased steadily with age, with the highest burden seen in adults 65 and older. This pattern suggests greater vulnerability or exposure among older adults.
+Incidence rates across age groups during the simulated outbreak in California and Los Angeles County. Rates increased steadily with age, with the highest burden seen among adults 65 years and older.
 
 
 
 ### Figure 2.
 
-Incidence rates varied across racial and ethnic groups, suggesting possible differences in exposure, underlying health status, or access to testing and care.
+
 
 
 ```{r fig.width=10, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE}
@@ -652,6 +652,8 @@ ggplot(race_counts,
 
 ```
 
+
+
 ```{r, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
 race_summary <- joined_data_ca %>%
   group_by(race_std) %>%
@@ -667,6 +669,9 @@ race_summary
 
 ```
 
+Total number of reported cases across racial and ethnic groups during the simulated outbreak. The distribution shows clear differences in case burden across groups, which may reflect variations in population size, exposure patterns, or access to care.
+
+### Figure 3
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 ggplot(race_summary,
        aes(x = reorder(race_std, incidence_rate_100k),
@@ -691,14 +696,17 @@ ggplot(race_summary,
 
 ```
 
+Incidence rates across racial and ethnic groups during the simulated outbreak. The figure highlights meaningful differences in infection rates, suggesting that certain groups may face higher exposure or barriers to prevention and care.
 
 ## Results
 
-The incidence rates for males and females were almost identical, showing that sex did not seem to play a meaningful role in infection risk in this simulated outbreak. More noticeable differences appeared when looking at age groups. Incidence increased steadily with age, with the highest burden seen in adults 65 years and older, while younger groups had much lower rates. There were also clear differences across racial and ethnic groups, with some groups experiencing higher incidence rates than others. These patterns help give an early picture of how the outbreak affected different populations before moving into more detailed analyses.
+The incidence rates for males and females were nearly identical, with females at 424.8 per 100,000 and males at 429.6 per 100,000 (Table 1). This shows that sex did not appear to influence infection risk in this simulated outbreak.Incidence rates increased steadily across age groups, with the highest burden observed among adults 65 years and older (Figure 1). Children and younger adults had much lower rates, which highlights the greater vulnerability of older adults in this setting. There were also clear differences across racial and ethnic groups. Total case counts varied widely across groups (Figure 2), and incidence rates showed meaningful variation as well (Figure 3). Some racial and ethnic groups experienced much higher incidence rates than others. These differences may reflect variations in exposure, underlying health conditions, work environments, or access to care. Overall, age and race or ethnicity were important demographic factors associated with differences in incidence, while sex showed no meaningful effect.
 
 ## Discussion
 
-These results suggest that sex did not have a major influence on infection risk, since the rates for males and females were essentially the same. Stronger patterns were seen with age and race and ethnicity. Older adults consistently carried the highest burden, which is expected for many respiratory infections. The variation across racial and ethnic groups also points to the need to explore factors like underlying health conditions, exposure risks, and differences in access to care that may contribute to these disparities. Altogether, these descriptive findings help guide our initial understanding of who is most impacted and support future work focused on prevention efforts, resource allocation, and examining demographic groups that may be at higher risk.
+The results indicate that sex did not have a major influence on infection risk, since males and females had almost identical incidence rates (Table 1). Much stronger patterns were observed across age and racial or ethnic groups.
 
-A higher rate of the disease among adults who are 18-49 years of age could reflect increased exposure among this age group due to their employment status. They may be essential workers or have jobs where they have to work in public. This age group may have different social activity patterns, higher mobility, or increased risk of exposure related to having children and other age-related responsibilities. 
+Older adults showed the highest incidence rates by a considerable margin (Figure 1). This is consistent with many respiratory illnesses, where adults 65 years and older often experience more severe disease or greater susceptibility due to underlying medical conditions or changes in immune function.The variation across racial and ethnic groups in both total cases (Figure 2) and incidence rates (Figure 3) highlights important differences that may be shaped by social, environmental, and healthcare related factors. These patterns suggest areas where additional attention may be needed to understand community level risks and opportunities for targeted prevention.
+
+Together, these findings provide a clear early picture of the groups most affected within this simulated outbreak and support future work focused on prevention strategies, resource allocation, and further analyses to understand the reasons behind these demographic patterns.
 
