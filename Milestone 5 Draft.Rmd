@@ -677,7 +677,7 @@ ggplot(race_summary,
             nudge_y = 50, size = 3.8) +
   labs(
     title = "Incidence Rate per 100,000 by Race/Ethnicity",
-    subtitle = "Simulated Infectious Disease Outbreak, California & LA County",
+    subtitle = "Infectious Disease Outbreak, California & LA County",
     x = NULL,
     y = "Incidence Rate per 100,000",
     fill = "Race/Ethnicity"
