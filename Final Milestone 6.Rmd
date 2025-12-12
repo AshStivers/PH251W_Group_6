@@ -1,0 +1,705 @@
+---
+title: 'Group 6 Milestone #6'
+output: html_document
+date: "2025-12-12"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+## Problem Statement
+The California Department of Public Health is monitoring a simulated outbreak of a novel infectious respiratory disease and must quickly assess its impact across the state. Multiple data sources have been provided including weekly morbidity and severity counts for all California counties except Los Angeles, detailed demographic and population data for Los Angeles County, and 2023 county-level population estimates (to support statewide surveillance activities). To effectively guide the public health response, these datasets must be merged and analyzed to produce a unified view of the outbreak.
+
+Public health leadership seeks to understand the trajectory of the outbreak, identify whether certain demographic or geographic groups are disproportionately affected, and determine how prevention and treatment resources should be allocated. The task requires integrating the three datasets, generating summary measures such as morbidity rates and severity distributions, and producing clear, print-ready tables and graphical visualizations that communicate key trends across counties and demographic categories. This analysis will inform data-driven decision-making for targeted interventions and resource deployment.
+
+## Methods for Each Data Source
+The sim_novelid_CA.csv dataset contained weekly morbidity records for all counties in California except Los Angeles County. It included cases, severity indicators, and demographic variables, and was stratified by age category, county, race, sex, and week start date. We cleaned and standardized the dataset, converting label cases, renaming the race variable, and ensuring that groups matched the format of the population data. We removed duplicate columns and looked for missing values before joining it. 
+
+The sim_novelid_LACounty.csv dataset was formatted in the same manner as the California state dataset, but it contained separate data for Los Angeles County. We utilized the same cleaning steps to ensure that both of the morbidity datasets were consistent and uniform. After we standardized column names and categories, we combined this dataset with the California dataset to create a morbidity dataset that included all counties. 
+
+The ca_pop_2023.csv dataset contained population estimates by age group, county, race, and sex. The labels in this dataset did not match those in the morbidity data, so they required more cleaning. We added County and re-coded population age categories to have them match age groups, sex labels, and race labels used in the morbidity datasets. 
+
+After all of the datasets had uniform variable names and categories, we grouped and summed the population, then joined it to the morbidity data using county, age group, sex, and race. Then we created a new variable for incidence per 100,000. Other minor cleaning steps were completed to prepare for the development of tables and plot visualizations.
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# Load packages
+library(tidyverse)
+library(readr)
+library(janitor)
+library(here)
+library(lubridate)
+library(stringr)
+library(dplyr)
+
+```
+
+
+```{r data_import_clean, include=FALSE}
+
+# Import / Clean Population data 
+
+
+ca_pop <- read_csv(here("ca_pop_2023.csv"), show_col_types = FALSE) %>%
+  clean_names() %>%
+  mutate(
+    pop = as.numeric(gsub(",", "", pop)),
+    county = str_replace(county, " County$", ""),
+    county = str_trim(county),
+    county = paste0(county, " County"),
+
+    # Standardize age groups
+    age_group = case_when(
+      age_cat %in% c("0-4", "5-11", "12-17") ~ "0-17",
+      age_cat == "18-49" ~ "18-49",
+      age_cat == "50-64" ~ "50-64",
+      age_cat == "65+"   ~ "65+",
+      TRUE ~ NA_character_
+    )
+  )
+
+# Summarize --> one row per county × age_group
+ca_pop_summary <- ca_pop %>%
+  group_by(county, age_group) %>%
+  summarise(population = sum(pop, na.rm = TRUE), .groups = "drop")
+
+
+# Import case data 
+
+ca_state <- read_csv(here("sim_novelid_CA.csv"), show_col_types = FALSE) %>%
+  clean_names()
+
+la_county <- read_csv(here("sim_novelid_LACounty.csv"), show_col_types = FALSE) %>%
+  clean_names()
+
+if ("dt_report" %in% names(la_county)) {
+  la_county <- la_county %>% select(-dt_report)
+}
+
+# Standardize case data (CA)
+
+ca_std <- ca_state %>%
+  rename(
+    week_start      = dt_diagnosis,
+    age_group       = age_cat,
+    race_eth        = race_ethnicity,
+    cases_new       = new_infections,
+    cases_cum       = cumulative_infected,
+    unrecovered_new = new_unrecovered,
+    unrecovered_cum = cumulative_unrecovered,
+    severe_new      = new_severe,
+    severe_cum      = cumulative_severe     
+  ) %>%
+  mutate(
+    week_start = ymd(week_start),
+    sex        = toupper(sex),
+    race_eth   = as.character(race_eth),
+    source     = "CA"
+  )
+
+# Standardize case data (LA) 
+
+la_std <- la_county %>%
+  rename(
+    week_start      = dt_dx,
+    age_group       = age_category,
+    race_eth        = race_eth,
+    cases_new       = dx_new,
+    cases_cum       = infected_cumulative,
+    unrecovered_new = unrecovered_new,
+    unrecovered_cum = unrecovered_cumulative,
+    severe_new      = severe_new,
+    severe_cum      = severe_cumulative
+  ) %>%
+  mutate(
+    county     = "Los Angeles County",
+    week_start = suppressWarnings(parse_date_time(week_start,
+                                                  orders = c("dmy", "bdY"))),
+    sex        = toupper(sex),
+    race_eth   = as.character(race_eth),
+    source     = "LA"
+  )
+
+# Align and combine case data 
+
+core_cols <- c(
+  "county", "week_start", "age_group", "sex", "race_eth",
+  "cases_new", "cases_cum",
+  "unrecovered_new", "unrecovered_cum",
+  "severe_new", "severe_cum",
+  "source"
+)
+
+align_cols <- function(df) {
+  missing <- setdiff(core_cols, names(df))
+  df[missing] <- NA
+  df %>% select(all_of(core_cols))
+}
+
+combined <- bind_rows(
+  align_cols(ca_std),
+  align_cols(la_std)
+)
+
+
+# Collapse case data to match population levels 
+
+# Collapse across sex and race → county × age_group × week
+cases_collapsed <- combined %>%
+  group_by(county, age_group, week_start) %>%
+  summarise(
+    cases_new = sum(cases_new, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+
+# Join & Incidence Rate 
+
+
+joined_data_ca <- cases_collapsed %>%
+  left_join(ca_pop_summary, by = c("county", "age_group")) %>%
+  mutate(
+    incidence_rate_100k = if_else(
+      !is.na(population) & population > 0,
+      (cases_new / population) * 100000,
+      NA_real_
+    )
+  )
+
+```
+
+
+```{r, include = FALSE}
+str(joined_data_ca)
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
+
+# Load data using HERE -> knitting always sees the same files
+
+# 1) california population 
+ca_pop   <- read_csv(here::here("ca_pop_2023.csv")) %>% clean_names() %>%
+  rename(race = race7)
+
+# 2) statewide dataset
+ca_state <- read_csv(here::here("sim_novelid_CA.csv")) %>% clean_names()
+
+# 3) los angeles county dataset
+la_county <- read_csv(here::here("sim_novelid_LACounty.csv")) %>% clean_names()
+
+```
+
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
+
+# Basic Cleaning
+
+
+# Remove dt_report ONLY if it exists
+if ("dt_report" %in% names(la_county)) {
+  la_county <- la_county %>% select(-dt_report)
+}
+
+
+# Convert race_ethnicity into a factor
+#    (these numbers represent categories.)
+ca_state <- ca_state %>%
+  mutate(race_ethnicity = as.factor(race_ethnicity))
+
+
+
+```
+
+
+
+```{r, include=FALSE}
+#Clean column names 
+
+# Make sure all names in datasets use snake_case 
+
+# Convert LA County column names - all lowercase
+names(la_county) <- tolower(names(la_county))
+
+# ca_state columns are already in snake_case - used clean_names() when importing
+
+# check the cleaned names:
+names(ca_pop)
+names(ca_state)
+names(la_county)
+
+
+```
+
+
+```{r, include=FALSE}
+
+# Clean & Combine Morbidity Data
+
+# Standardize CA statewide dataset
+
+ca_std <- ca_state %>%
+  rename(
+    week_start        = dt_diagnosis,
+    age_group         = age_cat,
+    race_eth          = race_ethnicity,
+    cases_new         = new_infections,
+    cases_cum         = cumulative_infected,
+    unrecovered_new   = new_unrecovered,
+    unrecovered_cum   = cumulative_unrecovered,
+    severe_new        = new_severe,
+    severe_cum        = cumulative_severe
+  ) %>%
+  mutate(
+    county     = as.character(county),
+    age_group  = as.character(age_group),
+    sex        = toupper(sex),
+    race_eth   = as.character(race_eth),
+    week_start = ymd(week_start),
+    source     = "CA"
+  )
+
+# Standardize LA County dataset
+
+la_std <- la_county %>%
+  rename(
+    week_start      = dt_dx,
+    age_group       = age_category,
+    race_eth        = race_eth,
+    cases_new       = dx_new,
+    cases_cum       = infected_cumulative,
+    unrecovered_cum = unrecovered_cumulative,
+    severe_cum      = severe_cumulative
+  ) %>%
+  mutate(
+    county     = "Los Angeles County",
+    age_group  = as.character(age_group),
+    sex        = toupper(sex),
+    race_eth   = as.character(race_eth),
+
+    # LA dates are in weird formats like "29MAY2023"
+    week_start = suppressWarnings(
+      parse_date_time(week_start, orders = c("dmy", "bdY"))
+    ),
+
+    source     = "LA"
+  ) %>%
+  mutate(
+    # If these columns do not exist in LA, fill with NA
+    unrecovered_new = ifelse("unrecovered_new" %in% names(.), unrecovered_new, NA),
+    severe_new      = ifelse("severe_new" %in% names(.), severe_new, NA)
+  )
+
+# Align columns and combine datasets
+
+core_cols <- c(
+  "county", "week_start", "age_group", "sex", "race_eth",
+  "cases_new", "cases_cum",
+  "unrecovered_new", "unrecovered_cum",
+  "severe_new", "severe_cum",
+  "source"
+)
+
+add_missing_cols <- function(df, cols) {
+  missing <- setdiff(cols, names(df))
+  df[missing] <- NA
+  df %>% select(all_of(cols))
+}
+
+ca_std2 <- add_missing_cols(ca_std, core_cols)
+la_std2 <- add_missing_cols(la_std, core_cols)
+
+combined <- bind_rows(ca_std2, la_std2)
+
+# Quick checks
+
+list(
+  rows = nrow(combined),
+  counties = n_distinct(combined$county),
+  date_range = range(combined$week_start, na.rm = TRUE),
+  missing_dates = sum(is.na(combined$week_start))
+)
+
+
+```
+
+
+```{r, include=FALSE}
+
+# Join Morbidity and Population Data
+
+# Standardize population dataset
+
+ca_pop_std <- ca_pop %>%
+  
+  # Make county names match morbidity dataset
+  mutate(county = paste0(county, " County")) %>%
+  
+  # Convert age_cat -> age_group that matches combined dataset
+  mutate(age_group = case_when(
+    age_cat %in% c("0-4", "5-11", "12-17") ~ "0-17",
+    age_cat == "18-49" ~ "18-49",
+    age_cat == "50-64" ~ "50-64",
+    age_cat == "65+"   ~ "65+",
+    TRUE ~ NA_character_
+  )) %>%
+
+  # Standardize sex
+  mutate(sex = toupper(sex)) %>%
+
+  # Standardize race categories
+  mutate(race = case_when(
+    race == "WhiteTE NH" ~ "WHITE NON-HISPANIC",
+    race == "BlackTE NH" ~ "BLACK NON-HISPANIC",
+    race == "AsianTE NH" ~ "ASIAN NON-HISPANIC",
+    race == "AIAN NH" ~ "AMERICAN INDIAN OR ALASKA NATIVE NON-HISPANIC",
+    race == "NHPI NH" ~ "NATIVE HAWAIIAN OR PACIFIC ISLANDER NON-HISPANIC",
+    race == "Hispanic" ~ "HISPANIC",
+    race == "MR NH" ~ "MULTIRACIAL NON-HISPANIC",
+    TRUE ~ NA_character_
+  )) %>%
+
+  # Keep only relevant variables
+  select(county, age_group, sex, race, pop) %>%
+  
+  # Aggregate population to one row per group
+  group_by(county, age_group, sex, race) %>%
+  summarise(population = sum(pop), .groups = "drop")
+
+
+
+# Standardize morbidity dataset 
+
+combined_std <- combined %>%
+  
+  # Standardize sex
+  mutate(sex = toupper(sex)) %>%
+
+  # Convert race_eth into same race names used in population dataset
+  mutate(race = case_when(
+    race_eth == "1" | str_detect(race_eth, "White") ~ "WHITE NON-HISPANIC",
+    race_eth == "2" | str_detect(race_eth, "Black") ~ "BLACK NON-HISPANIC",
+    race_eth == "3" | str_detect(race_eth, "Asian") ~ "ASIAN NON-HISPANIC",
+    race_eth == "4" | str_detect(race_eth, "American|Alaska") ~
+         "AMERICAN INDIAN OR ALASKA NATIVE NON-HISPANIC",
+    race_eth == "5" | str_detect(race_eth, "Pacific|Hawai") ~
+         "NATIVE HAWAIIAN OR PACIFIC ISLANDER NON-HISPANIC",
+    race_eth == "6" | str_detect(race_eth, "Hispanic|Latino") ~ "HISPANIC",
+    race_eth == "7" | str_detect(race_eth, "Multi") ~ "MULTIRACIAL NON-HISPANIC",
+    TRUE ~ NA_character_
+  ))
+
+
+# Join morbidity & population 
+
+joined_data_ca <- combined_std %>%
+  left_join(
+    ca_pop_std,
+    by = c("county", "age_group", "sex", "race")
+  )
+
+
+# Calculate incidence rate per 100,000 
+
+joined_data_ca <- joined_data_ca %>%
+  mutate(
+    incidence_rate_100k = if_else(
+      !is.na(population) & population > 0,
+      (cases_new / population) * 100000,
+      NA_real_
+    )
+  )
+
+# Quick Check
+
+summary(joined_data_ca$population)
+summary(joined_data_ca$incidence_rate_100k)
+
+head(
+  joined_data_ca %>%
+    select(
+      week_start, county, age_group, sex, race,
+      cases_new, population, incidence_rate_100k
+    ),
+  20
+)
+
+
+```
+
+
+
+```{r, include=FALSE}
+sex_summary <- joined_data_ca %>%
+  group_by(sex) %>%
+  summarise(
+    total_cases = sum(cases_new, na.rm = TRUE),
+    total_population = sum(population, na.rm = TRUE),
+    incidence_rate_100k = (total_cases / total_population) * 100000
+  )
+
+# Population by race (statewide, all ages & sexes combined)
+race_pop <- ca_pop %>%
+  # standardize race labels to match case data
+  mutate(
+    race_std = case_when(
+      race == "WhiteTE NH" ~ "WHITE NON-HISPANIC",
+      race == "BlackTE NH" ~ "BLACK NON-HISPANIC",
+      race == "AsianTE NH" ~ "ASIAN NON-HISPANIC",
+      race == "AIAN NH"    ~ "AMERICAN INDIAN OR ALASKA NATIVE NON-HISPANIC",
+      race == "NHPI NH"    ~ "NATIVE HAWAIIAN OR PACIFIC ISLANDER NON-HISPANIC",
+      race == "Hispanic"   ~ "HISPANIC",
+      race == "MR NH"      ~ "MULTIRACIAL NON-HISPANIC",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(!is.na(race_std)) %>%
+  group_by(race_std) %>%
+  summarise(
+    population = sum(pop, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+race_cases <- combined %>%
+  mutate( race_std = case_when(
+      race_eth == "1" | str_detect(race_eth, "White") ~ "WHITE NON-HISPANIC",
+      race_eth == "2" | str_detect(race_eth, "Black") ~ "BLACK NON-HISPANIC",
+      race_eth == "3" | str_detect(race_eth, "Asian") ~ "ASIAN NON-HISPANIC",
+      race_eth == "4" ~ "AMERICAN INDIAN OR ALASKA NATIVE NON-HISPANIC",
+      race_eth == "5" ~ "NATIVE HAWAIIAN OR PACIFIC ISLANDER NON-HISPANIC",
+      race_eth == "6" ~ "HISPANIC",
+      race_eth == "7" ~ "MULTIRACIAL NON-HISPANIC",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(!is.na(race_std)) %>%
+  group_by(race_std) %>%
+  summarise(
+    total_cases = sum(cases_new, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+race_rates <- race_cases %>%
+  left_join(race_pop, by = "race_std") %>%
+  mutate(
+    incidence_rate_100k = (total_cases / population) * 100000
+  )
+
+joined_data_ca <- combined %>%
+  mutate(
+    race_std = case_when(
+      race_eth %in% c("1", "White, Non-Hispanic") ~ "White NH",
+      race_eth %in% c("2", "Black, Non-Hispanic") ~ "Black NH",
+      race_eth %in% c("3", "Asian, Non-Hispanic") ~ "Asian NH",
+      race_eth %in% c("4", "American Indian or Alaska Native, Non-Hispanic") ~ "AIAN NH",
+      race_eth %in% c("5", "Native Hawaiian or Pacific Islander, Non-Hispanic") ~ "NHPI NH",
+      race_eth %in% c("7", "Multiracial (two or more of above races), Non-Hispanic") ~ "MR NH",
+      race_eth %in% c("6", "Hispanic (any race)") ~ "Hispanic",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+
+  
+  left_join(
+    ca_pop_summary,
+    by = c("county", "age_group")
+  ) %>%
+
+  mutate(
+    incidence_rate_100k =
+      (cases_new / population) * 100000
+  )
+
+
+```
+
+
+## Summary Measures and Visualizations
+
+### Table 1.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+library(gt)
+
+sex_summary %>%
+  # Make sex labels prettier in the table
+  mutate(
+    sex = recode(sex,
+                 "FEMALE" = "Female",
+                 "MALE"   = "Male")
+  ) %>%
+  gt() %>%
+  tab_header(
+    title = "Incidence Rate per 100,000 by Sex",
+    subtitle = "Simulated Infectious Disease Outbreak, California & LA County"
+  ) %>%
+  # Clean column names for the table
+  cols_label(
+    sex                = "Sex",
+    total_cases        = "Total cases",
+    total_population   = "Total population",
+    incidence_rate_100k = "Incidence rate per 100,000"
+  ) %>%
+  # No decimals for counts
+  fmt_integer(
+    columns = c(total_cases, total_population)
+  ) %>%
+  # Keep one decimal for the rate 
+  fmt_number(
+    columns = incidence_rate_100k,
+    decimals = 1
+  )
+
+```
+
+Total cases, population counts, and incidence rates for males and females during the simulated infectious disease outbreak across California and Los Angeles County. Incidence rates were nearly identical for both groups, suggesting that sex did not influence infection risk.
+
+
+### Figure 1.
+
+```{r age_group_summary, include=FALSE}
+age_summary <- joined_data_ca %>%
+  group_by(age_group) %>%
+  summarise(
+    total_cases = sum(cases_new, na.rm = TRUE),
+    total_population = sum(population, na.rm = TRUE),
+    incidence_rate_100k = (total_cases / total_population) * 100000
+  )
+```
+
+
+```{r age_group_plot, echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(age_summary,
+       aes(x = age_group, y = incidence_rate_100k, fill = age_group)) +
+  geom_col(width = 0.7) +
+  geom_text(aes(label = round(incidence_rate_100k, 1)), 
+            vjust = -0.5, size = 4) +
+  labs(
+    title = "Incidence Rate per 100,000 by Age Group",
+    subtitle = "Simulated Infectious Disease Outbreak, California & LA County",
+    x = "Age group",
+    y = "Incidence rate per 100,000"
+  ) +
+  theme_minimal(base_size = 15) +
+  theme(
+    legend.position = "none"  
+  )
+
+```
+
+Incidence rates across age groups during the simulated outbreak in California and Los Angeles County. Rates increased steadily with age, with the highest burden seen among adults 65 years and older.
+
+
+
+### Figure 2.
+
+
+
+
+```{r fig.width=10, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE}
+
+race_counts <- combined %>%
+  mutate(
+    race_std = case_when(
+      race_eth == "1" | str_detect(race_eth, "White") ~ "WHITE NON-HISPANIC",
+      race_eth == "2" | str_detect(race_eth, "Black") ~ "BLACK NON-HISPANIC",
+      race_eth == "3" | str_detect(race_eth, "Asian") ~ "ASIAN NON-HISPANIC",
+      race_eth == "4" ~ "AMERICAN INDIAN OR ALASKA NATIVE NON-HISPANIC",
+      race_eth == "5" ~ "NATIVE HAWAIIAN OR PACIFIC ISLANDER NON-HISPANIC",
+      race_eth == "6" ~ "HISPANIC",
+      race_eth == "7" ~ "MULTIRACIAL NON-HISPANIC",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(!is.na(race_std)) %>%
+  group_by(race_std) %>%
+  summarise(
+    total_cases = sum(cases_new, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(total_cases))
+
+ggplot(race_counts,
+       aes(x = reorder(race_std, total_cases),
+           y = total_cases,
+           fill = race_std)) +
+  geom_col(width = 0.7) +
+  geom_text(aes(label = total_cases),
+            hjust = -0.1, size = 3.5) +
+  coord_flip() +
+  labs(
+    title = "Total Cases by Race/Ethnicity",
+    subtitle = "Simulated Infectious Disease Outbreak, California & LA County",
+    x = NULL,
+    y = "Total Cases"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    legend.position = "none",
+    axis.text.y = element_text(size = 10)
+  ) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1)))
+
+
+```
+
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
+race_summary <- joined_data_ca %>%
+  group_by(race_std) %>%
+  summarise(
+    total_cases = sum(cases_new, na.rm = TRUE),
+    total_population = sum(population, na.rm = TRUE),
+    incidence_rate_100k = (total_cases / total_population) * 100000
+  ) %>%
+  filter(!is.na(race_std)) %>%
+  arrange(desc(incidence_rate_100k))
+
+race_summary
+
+```
+
+Total number of reported cases across racial and ethnic groups during the simulated outbreak. The distribution shows clear differences in case burden across groups, which may reflect variations in population size, exposure patterns, or access to care.
+
+### Figure 3
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(race_summary,
+       aes(x = reorder(race_std, incidence_rate_100k),
+           y = incidence_rate_100k,
+           fill = race_std)) +
+  geom_col(width = 0.7) +
+  geom_text(aes(label = round(incidence_rate_100k, 1)),
+            nudge_y = 50, size = 3.8) +
+  labs(
+    title = "Incidence Rate per 100,000 by Race/Ethnicity",
+    subtitle = "Infectious Disease Outbreak, California & LA County",
+    x = NULL,
+    y = "Incidence Rate per 100,000",
+    fill = "Race/Ethnicity"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    legend.title = element_text(size = 12)
+  )
+
+```
+
+Incidence rates across racial and ethnic groups during the simulated outbreak. The figure highlights meaningful differences in infection rates, suggesting that certain groups may face higher exposure or barriers to prevention and care.
+
+## Results
+
+The incidence rates for males and females were nearly identical, with females at 424.8 per 100,000 and males at 429.6 per 100,000 (Table 1). This shows that sex did not appear to influence infection risk in this simulated outbreak.Incidence rates increased steadily across age groups, with the highest burden observed among adults 65 years and older (Figure 1). Children and younger adults had much lower rates, which highlights the greater vulnerability of older adults in this setting. There were also clear differences across racial and ethnic groups. Total case counts varied widely across groups (Figure 2), and incidence rates showed meaningful variation as well (Figure 3). Some racial and ethnic groups experienced much higher incidence rates than others. These differences may reflect variations in exposure, underlying health conditions, work environments, or access to care. Overall, age and race or ethnicity were important demographic factors associated with differences in incidence, while sex showed no meaningful effect.
+
+## Discussion
+
+The results indicate that sex did not have a major influence on infection risk, since males and females had almost identical incidence rates (Table 1). Much stronger patterns were observed across age and racial or ethnic groups.
+
+Older adults showed the highest incidence rates by a considerable margin (Figure 1). This is consistent with many respiratory illnesses, where adults 65 years and older often experience more severe disease or greater susceptibility due to underlying medical conditions or changes in immune function.The variation across racial and ethnic groups in both total cases (Figure 2) and incidence rates (Figure 3) highlights important differences that may be shaped by social, environmental, and healthcare related factors. These patterns suggest areas where additional attention may be needed to understand community level risks and opportunities for targeted prevention.
+
+Together, these findings provide a clear early picture of the groups most affected within this simulated outbreak and support future work focused on prevention strategies, resource allocation, and further analyses to understand the reasons behind these demographic patterns.
